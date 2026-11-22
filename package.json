@@ -1,0 +1,14 @@
+{
+  "name": "yasnozaym-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Статический сайт микрокредитной компании: SEO, юридически корректные раскрытия, калькулятор займа",
+  "scripts": {
+    "build": "node build.js",
+    "check": "node build.js --strict",
+    "serve": "node serve.js",
+    "dev": "node build.js && node serve.js"
+  },
+  "engines": { "node": ">=18" },
+  "license": "UNLICENSED"
+}
