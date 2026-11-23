@@ -219,11 +219,13 @@ write(
   'robots.txt',
   `User-agent: *
 Allow: /
+Disallow: /lk/
 Disallow: /*?
 Allow: /*?v=
 
 User-agent: Yandex
 Allow: /
+Disallow: /lk/
 Clean-param: utm_source&utm_medium&utm_campaign&utm_content&utm_term&yclid&gclid&from /
 
 Sitemap: ${absUrl('/sitemap.xml')}

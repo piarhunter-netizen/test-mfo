@@ -156,7 +156,7 @@ const header = (page) => `
       </ul>
       <div class="nav__extra">
         <a class="nav__phone" href="tel:${K.phoneHref}">${icon('phone')}${K.phone}</a>
-        ${cfg.lkUrl ? `<a class="btn btn--ghost" href="${cfg.lkUrl}" rel="nofollow">Войти</a>` : ''}
+        <a class="btn btn--ghost" href="/lk/login/" rel="nofollow">${icon('user')}Войти</a>
         <a class="btn btn--primary" href="/#loan">Получить деньги</a>
       </div>
     </nav>
@@ -232,7 +232,7 @@ const pageHeader = (page) =>
 </div></div>`;
 
 const render = (page, assets) => `${head(page, assets)}
-<body data-endpoint="${esc(cfg.formEndpoint)}" data-metrika="${esc(cfg.metrikaId)}">
+<body data-endpoint="${esc(cfg.formEndpoint)}" data-metrika="${esc(cfg.metrikaId)}" data-lk="${esc(cfg.lkUrl)}" data-lk-login-url="${esc(cfg.lkLoginEndpoint)}" data-lk-reset-url="${esc(cfg.lkResetEndpoint)}">
 <a class="skip" href="#main">Перейти к содержанию</a>
 ${header(page)}
 <main id="main">

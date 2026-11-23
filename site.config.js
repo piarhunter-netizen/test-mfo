@@ -62,8 +62,13 @@ module.exports = {
 
   // Куда отправлять заявку (личный кабинет/CRM). Пусто — форма покажет демо-сообщение.
   formEndpoint: '',
-  // Ссылка на личный кабинет заёмщика
+  // Личный кабинет. Страница входа /lk/login/ отправляет данные на ваш сервер (POST, JSON):
+  //   lkLoginEndpoint  ← {phone, password}            → {redirect} или {error}
+  //   lkResetEndpoint  ← {phone} / {phone, code, password} → {ok} или {error}
+  // После успешного входа пользователь переходит на redirect из ответа или на lkUrl.
   lkUrl: '',
+  lkLoginEndpoint: '',
+  lkResetEndpoint: '',
   // ID счётчика Яндекс Метрики. Подключается ТОЛЬКО после согласия пользователя на cookies.
   metrikaId: '',
   // Коды подтверждения для вебмастеров

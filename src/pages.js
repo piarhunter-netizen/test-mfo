@@ -523,6 +523,70 @@ const voprosy = {
   body: `<div class="container narrow">${allFaq.map((g, i) => faqBlock(g.items, { title: g.title, id: 'faq-' + i })).join('')}${cta('Остались вопросы?', 'Позвоните нам или оформите заявку — расскажем об условиях до подписания договора.')}</div>`,
 };
 
+// ---------- Вход в личный кабинет ----------
+const lkLogin = {
+  path: '/lk/login/',
+  title: `Вход в личный кабинет — ${cfg.brand}`,
+  description: 'Вход в личный кабинет заёмщика: управление займом, погашение и продление, документы и история платежей.',
+  h1: 'Вход в личный кабинет',
+  customHero: true,
+  noindex: true,
+  noSitemap: true,
+  body: `
+<section class="auth">
+  <div class="auth__card">
+    <form class="auth__form" data-lk-login novalidate>
+      <h1 class="auth__t">Вход в личный кабинет</h1>
+      <p class="auth__sub">Управляйте займом, погашайте и продлевайте онлайн.</p>
+      <label class="field">
+        <span class="field__label">Телефон</span>
+        <input class="input" type="tel" name="phone" inputmode="tel" autocomplete="username" placeholder="+7 (900) 000-00-00" required>
+        <span class="field__err" data-err="phone">Введите номер полностью</span>
+      </label>
+      <label class="field">
+        <span class="field__label">Пароль</span>
+        <span class="pass">
+          <input class="input" type="password" name="password" autocomplete="current-password" required minlength="6">
+          <button class="pass__toggle" type="button" data-toggle-pass aria-label="Показать пароль">${icon('lock')}</button>
+        </span>
+        <span class="field__err" data-err="password">Введите пароль</span>
+      </label>
+      <button class="btn btn--primary btn--lg btn--block" type="submit">Войти</button>
+      <p class="auth__links"><button class="linklike" type="button" data-auth-mode="reset">Забыли пароль?</button></p>
+      <div class="auth__msg" data-msg hidden></div>
+    </form>
+
+    <form class="auth__form" data-lk-reset novalidate hidden>
+      <h2 class="auth__t">Восстановление пароля</h2>
+      <p class="auth__sub">Отправим код подтверждения в СМС на номер, указанный в договоре.</p>
+      <label class="field">
+        <span class="field__label">Телефон</span>
+        <input class="input" type="tel" name="phone" inputmode="tel" autocomplete="username" placeholder="+7 (900) 000-00-00" required>
+        <span class="field__err" data-err="phone">Введите номер полностью</span>
+      </label>
+      <div data-reset-step2 hidden>
+        <label class="field">
+          <span class="field__label">Код из СМС</span>
+          <input class="input" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+          <span class="field__err" data-err="code">Введите код из СМС</span>
+        </label>
+        <label class="field">
+          <span class="field__label">Новый пароль</span>
+          <input class="input" type="password" name="password" autocomplete="new-password" minlength="8">
+          <span class="field__err" data-err="password">Не короче 8 символов</span>
+        </label>
+      </div>
+      <button class="btn btn--primary btn--lg btn--block" type="submit" data-reset-btn>Получить код</button>
+      <p class="auth__links"><button class="linklike" type="button" data-auth-mode="login">Вернуться ко входу</button></p>
+      <div class="auth__msg" data-msg hidden></div>
+    </form>
+
+    <p class="auth__new">Ещё нет кабинета? Он создаётся при оформлении первого займа. <a href="/#loan">Оформить займ</a></p>
+  </div>
+  <aside class="auth__safe">${icon('shield')}<p><strong>Берегите данные.</strong> Сотрудники ${esc(cfg.brand)} никогда не спрашивают пароль и коды из СМС. Вводите их только на этом сайте.</p></aside>
+</section>`,
+};
+
 // ---------- 404 ----------
 const notFound = {
   path: '/404.html',
@@ -536,4 +600,4 @@ const notFound = {
   body: `<div class="container narrow"><p class="btn-row"><a class="btn btn--primary" href="/">На главную</a><a class="btn btn--ghost" href="/usloviya/">Условия займа</a><a class="btn btn--ghost" href="/karta-sajta/">Карта сайта</a></p></div>`,
 };
 
-module.exports = [home, ...landings, usloviya, kakPoluchit, kakPogasit, oKompanii, dokumenty, kontakty, voprosy, notFound];
+module.exports = [home, ...landings, usloviya, kakPoluchit, kakPogasit, oKompanii, dokumenty, kontakty, voprosy, lkLogin, notFound];
