@@ -1,5 +1,5 @@
 // Каркас страницы: <head>, шапка, подвал, cookie-баннер (только если подключена Метрика)
-const { cfg, esc, pct, pskText, yearRate, money, absUrl, ruDate } = require('./lib');
+const { cfg, base, esc, pct, pskText, yearRate, money, absUrl, ruDate } = require('./lib');
 const { icon } = require('./components');
 
 const C = cfg.company;
@@ -178,7 +178,7 @@ const pageHeader = (page) =>
 </div></div>`;
 
 const render = (page, assets) => `${head(page, assets)}
-<body data-endpoint="${esc(cfg.formEndpoint)}" data-metrika="${esc(cfg.metrikaId)}" data-lk="${esc(cfg.lkUrl)}" data-lk-login-url="${esc(cfg.lkLoginEndpoint)}" data-lk-reset-url="${esc(cfg.lkResetEndpoint)}">
+<body data-api="${esc(cfg.apiBase)}" data-base="${esc(base)}" data-metrika="${esc(cfg.metrikaId)}">
 <a class="skip" href="#main">Перейти к содержанию</a>
 ${header(page)}
 <main id="main">

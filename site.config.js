@@ -60,15 +60,11 @@ module.exports = {
     maxAge: 75,
   },
 
-  // Куда отправлять заявку (личный кабинет/CRM). Пусто — форма покажет демо-сообщение.
-  formEndpoint: '',
-  // Личный кабинет. Страница входа /lk/login/ отправляет данные на ваш сервер (POST, JSON):
-  //   lkLoginEndpoint  ← {phone, password}            → {redirect} или {error}
-  //   lkResetEndpoint  ← {phone} / {phone, code, password} → {ok} или {error}
-  // После успешного входа пользователь переходит на redirect из ответа или на lkUrl.
-  lkUrl: '',
-  lkLoginEndpoint: '',
-  lkResetEndpoint: '',
+  // API сервера (server.js): заявки, регистрация, вход в личный кабинет.
+  // Пусто — формы работают в демо-режиме (так собирается версия для GitHub Pages).
+  apiBase: '/api',
+  // Адрес личного кабинета после входа
+  lkUrl: '/lk/',
   // ID счётчика Яндекс Метрики. Подключается ТОЛЬКО после согласия пользователя на cookies.
   metrikaId: '',
   // Коды подтверждения для вебмастеров

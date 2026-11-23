@@ -5,6 +5,8 @@ const cfg = require('../site.config');
 cfg.url = (process.env.SITE_URL || cfg.url).replace(/\/+$/, '');
 // Подпапка, если сайт открывается не из корня домена (например, GitHub Pages: /repo)
 const base = new URL(cfg.url).pathname.replace(/\/+$/, '');
+// API_BASE= (пусто) — сборка без сервера, например для GitHub Pages
+if (process.env.API_BASE !== undefined) cfg.apiBase = process.env.API_BASE;
 
 const NBSP = ' ';
 

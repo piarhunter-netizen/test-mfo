@@ -204,67 +204,107 @@ const dokumenty = {
 </div>`,
 };
 
-// ---------- Вход в личный кабинет ----------
+// ---------- Вход и регистрация в личном кабинете ----------
+const field = (label, input, err) => `
+      <label class="field">
+        <span class="field__label">${label}</span>
+        ${input}
+        <span class="field__err">${err}</span>
+      </label>`;
+const phoneInput = '<input class="input" type="tel" name="phone" inputmode="tel" autocomplete="tel" placeholder="+7 (900) 000-00-00" required>';
+const passInput = (name, ac) => `<span class="pass"><input class="input" type="password" name="${name}" autocomplete="${ac}" minlength="8"><button class="pass__toggle" type="button" data-toggle-pass aria-label="Показать пароль">${icon('lock')}</button></span>`;
+
 const lkLogin = {
   path: '/lk/login/',
   title: `Вход в личный кабинет — ${cfg.brand}`,
-  description: 'Вход в личный кабинет заёмщика: управление займом, погашение и продление, документы и история платежей.',
-  h1: 'Вход в личный кабинет',
+  description: 'Вход и регистрация в личном кабинете заёмщика: заявки, займы, погашение и документы.',
+  h1: 'Личный кабинет',
   customHero: true,
   noindex: true,
   noSitemap: true,
   body: `
 <section class="auth">
   <div class="auth__card">
-    <form class="auth__form" data-lk-login novalidate>
-      <h1 class="auth__t">Вход в личный кабинет</h1>
-      <p class="auth__sub">Управляйте займом, погашайте и продлевайте онлайн.</p>
-      <label class="field">
-        <span class="field__label">Телефон</span>
-        <input class="input" type="tel" name="phone" inputmode="tel" autocomplete="username" placeholder="+7 (900) 000-00-00" required>
-        <span class="field__err" data-err="phone">Введите номер полностью</span>
-      </label>
-      <label class="field">
-        <span class="field__label">Пароль</span>
-        <span class="pass">
-          <input class="input" type="password" name="password" autocomplete="current-password" required minlength="6">
-          <button class="pass__toggle" type="button" data-toggle-pass aria-label="Показать пароль">${icon('lock')}</button>
-        </span>
-        <span class="field__err" data-err="password">Введите пароль</span>
-      </label>
+    <h1 class="auth__t">Личный кабинет</h1>
+    <div class="auth__tabs" role="tablist">
+      <button type="button" role="tab" data-auth-mode="login" aria-selected="true">Вход</button>
+      <button type="button" role="tab" data-auth-mode="register" aria-selected="false">Регистрация</button>
+    </div>
+
+    <form class="auth__form" data-auth="login" novalidate>
+      ${field('Телефон', phoneInput, 'Введите номер полностью')}
+      ${field('Пароль', passInput('password', 'current-password'), 'Введите пароль')}
       <button class="btn btn--primary btn--lg btn--block" type="submit">Войти</button>
       <p class="auth__links"><button class="linklike" type="button" data-auth-mode="reset">Забыли пароль?</button></p>
       <div class="auth__msg" data-msg hidden></div>
     </form>
 
-    <form class="auth__form" data-lk-reset novalidate hidden>
-      <h2 class="auth__t">Восстановление пароля</h2>
-      <p class="auth__sub">Отправим код подтверждения в СМС на номер, указанный в договоре.</p>
-      <label class="field">
-        <span class="field__label">Телефон</span>
-        <input class="input" type="tel" name="phone" inputmode="tel" autocomplete="username" placeholder="+7 (900) 000-00-00" required>
-        <span class="field__err" data-err="phone">Введите номер полностью</span>
-      </label>
-      <div data-reset-step2 hidden>
-        <label class="field">
-          <span class="field__label">Код из СМС</span>
-          <input class="input" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
-          <span class="field__err" data-err="code">Введите код из СМС</span>
-        </label>
-        <label class="field">
-          <span class="field__label">Новый пароль</span>
-          <input class="input" type="password" name="password" autocomplete="new-password" minlength="8">
-          <span class="field__err" data-err="password">Не короче 8 символов</span>
-        </label>
+    <form class="auth__form" data-auth="register" novalidate hidden>
+      ${field('Телефон', phoneInput, 'Введите номер полностью')}
+      <fieldset class="consents" data-step1>
+        <label class="check"><input type="checkbox" name="pd" required><span><a href="/soglasie-na-obrabotku-pd/" target="_blank">согласие на обработку персональных данных</a></span></label>
+        <label class="check"><input type="checkbox" name="asp" required><span><a href="/dokumenty/#asp" target="_blank">соглашение о простой электронной подписи</a></span></label>
+      </fieldset>
+      <div data-step2 hidden>
+        ${field('Код из СМС', '<input class="input" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6">', 'Введите код из СМС')}
+        ${field('Придумайте пароль', passInput('password', 'new-password'), 'Не короче 8 символов')}
+        ${field('Повторите пароль', passInput('password2', 'new-password'), 'Пароли не совпадают')}
       </div>
-      <button class="btn btn--primary btn--lg btn--block" type="submit" data-reset-btn>Получить код</button>
-      <p class="auth__links"><button class="linklike" type="button" data-auth-mode="login">Вернуться ко входу</button></p>
+      <button class="btn btn--primary btn--lg btn--block" type="submit" data-submit>Получить код</button>
       <div class="auth__msg" data-msg hidden></div>
     </form>
 
-    <p class="auth__new">Ещё нет кабинета? Он создаётся при оформлении первого займа. <a href="/#loan">Оформить займ</a></p>
+    <form class="auth__form" data-auth="reset" novalidate hidden>
+      <p class="auth__sub">Отправим код в СМС на номер, указанный при регистрации.</p>
+      ${field('Телефон', phoneInput, 'Введите номер полностью')}
+      <div data-step2 hidden>
+        ${field('Код из СМС', '<input class="input" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6">', 'Введите код из СМС')}
+        ${field('Новый пароль', passInput('password', 'new-password'), 'Не короче 8 символов')}
+      </div>
+      <button class="btn btn--primary btn--lg btn--block" type="submit" data-submit>Получить код</button>
+      <p class="auth__links"><button class="linklike" type="button" data-auth-mode="login">Вернуться ко входу</button></p>
+      <div class="auth__msg" data-msg hidden></div>
+    </form>
   </div>
-  <aside class="auth__safe">${icon('shield')}<p><strong>Берегите данные.</strong> Сотрудники ${esc(cfg.brand)} никогда не спрашивают пароль и коды из СМС. Вводите их только на этом сайте.</p></aside>
+  <aside class="auth__safe">${icon('shield')}<p><strong>Берегите данные.</strong> Сотрудники ${esc(cfg.brand)} никогда не спрашивают пароль и коды из СМС.</p></aside>
+</section>`,
+};
+
+const lkCabinet = {
+  path: '/lk/',
+  title: `Личный кабинет — ${cfg.brand}`,
+  description: 'Личный кабинет заёмщика: заявки, статус решения, документы.',
+  h1: 'Личный кабинет',
+  customHero: true,
+  noindex: true,
+  noSitemap: true,
+  body: `
+<section class="cab container" data-cab>
+  <div class="cab__head">
+    <div>
+      <h1 class="cab__t">Личный кабинет</h1>
+      <p class="muted" data-cab-user>Загрузка…</p>
+    </div>
+    <button class="btn btn--ghost" type="button" data-logout>Выйти</button>
+  </div>
+  <div class="cab__grid">
+    <section class="cab__card">
+      <h2 class="cab__h">Мои заявки</h2>
+      <div data-cab-apps><p class="muted">Загрузка…</p></div>
+      <a class="btn btn--primary" href="/#loan">Новая заявка</a>
+    </section>
+    <section class="cab__card">
+      <h2 class="cab__h">Документы</h2>
+      <ul class="cab__links">
+        <li><a href="/usloviya/">Информация об условиях займа</a></li>
+        <li><a href="/dokumenty/">Правила и общие условия</a></li>
+        <li><a href="/politika-konfidencialnosti/">Политика обработки персональных данных</a></li>
+      </ul>
+      <h2 class="cab__h">Поддержка</h2>
+      <p><a href="tel:${K.phoneHref}">${K.phone}</a><br><span class="muted">${esc(K.hours)}</span></p>
+    </section>
+  </div>
+  <div class="auth__msg" data-msg hidden></div>
 </section>`,
 };
 
@@ -281,4 +321,4 @@ const notFound = {
   body: `<div class="container narrow"><p class="btn-row"><a class="btn btn--primary" href="/">На главную</a><a class="btn btn--ghost" href="/lk/login/">Личный кабинет</a></p></div>`,
 };
 
-module.exports = [home, usloviya, dokumenty, lkLogin, notFound];
+module.exports = [home, usloviya, dokumenty, lkLogin, lkCabinet, notFound];

@@ -177,6 +177,29 @@ code { background: var(--brand-50); padding: 1px 6px; border-radius: 6px; font-s
 .hotline .ico { width: 40px; height: 40px; padding: 10px; border-radius: 12px; background: var(--brand-50); color: var(--brand); }
 .hotline a { font-weight: 700; white-space: nowrap; }
 
+.auth__tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--bg); border-radius: 14px; margin: 16px 0 22px; }
+.auth__tabs button { border: 0; background: transparent; padding: 10px; border-radius: 10px; font: 600 15px var(--font); color: var(--muted); cursor: pointer; }
+.auth__tabs button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(18, 36, 31, .1); }
+.auth__form .consents { margin: 4px 0 16px; }
+.input[readonly] { background: var(--bg); color: var(--muted); }
+
+/* Кабинет */
+.cab { padding-top: 40px; padding-bottom: 24px; }
+.cab__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
+.cab__t { font-size: clamp(28px, 4vw, 38px); margin-bottom: 4px; }
+.cab__grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
+.cab__card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; }
+.cab__h { font-size: 19px; margin-bottom: 14px; }
+.cab__card .cab__h:not(:first-child) { margin-top: 24px; }
+.cab__links { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.apps { list-style: none; padding: 0; margin: 0 0 20px; display: grid; gap: 10px; }
+.apps li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; background: var(--bg); border-radius: 14px; }
+.apps li div { display: flex; flex-direction: column; }
+.apps li div span { font-size: 13.5px; color: var(--muted); }
+.apps__st { font-size: 13px; font-weight: 600; color: #8a5a00; background: var(--warn-bg); padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.cab__card > .muted { margin-bottom: 18px; }
+@media (max-width: 760px) { .cab__grid { grid-template-columns: 1fr; } }
+
 /* Полоса доверия */
 .band { background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .trust { list-style: none; margin: 0; padding: 22px 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }

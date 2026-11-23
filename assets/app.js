@@ -40,8 +40,10 @@
     });
   });
   var phoneDigits = function (input) { return input.value.replace(/\D/g, ''); };
+  var API = body.getAttribute('data-api') || '';
+  var BASE = body.getAttribute('data-base') || '';
   var postJson = function (url, data) {
-    return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), credentials: 'include' })
+    return fetch(url, { method: data === undefined ? 'GET' : 'POST', headers: { 'Content-Type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data), credentials: 'same-origin' })
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw j; return j; }); });
   };
 
@@ -118,97 +120,166 @@
         consents: { docs: true, pd: true, bki: true, asp: true },
         consentedAt: new Date().toISOString(), page: location.pathname, utm: readUtm(), referrer: document.referrer,
       };
-      var endpoint = body.getAttribute('data-endpoint');
       var show = function (html) { done.innerHTML = html; done.hidden = false; };
       goal('apply_submit', { amount: payload.amount, term: payload.term });
-
-      if (!endpoint) {
-        show('<strong>Заявка сформирована.</strong> Это демонстрационный режим: подключите обработчик заявок (formEndpoint в site.config.js), чтобы передавать данные в личный кабинет.');
+      if (!API) {
+        show('<strong>Заявка сформирована.</strong> Демо-режим: заявки принимаются, когда сайт запущен на сервере (node server.js).');
         return;
       }
       btn.disabled = true; btn.textContent = 'Отправляем…';
-      fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), credentials: 'include' })
-        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json().catch(function () { return {}; }); })
+      postJson(API + '/apply', payload)
         .then(function (res) {
-          if (res && res.redirect) { location.href = res.redirect; return; }
-          show('<strong>Спасибо!</strong> Мы отправили СМС со ссылкой на продолжение анкеты.');
+          try { sessionStorage.setItem('lk-phone', payload.phone); } catch (e2) { /* ignore */ }
+          show(res.registered
+            ? '<strong>Заявка принята.</strong> Статус решения — в <a href="' + BASE + '/lk/">личном кабинете</a>.'
+            : '<strong>Заявка принята.</strong> Чтобы следить за решением, <a href="' + BASE + '/lk/login/#register">создайте личный кабинет</a> — это займёт минуту.');
+          form.querySelector('[data-step2]').hidden = true;
         })
-        .catch(function () { show('Не удалось отправить заявку. Попробуйте ещё раз или позвоните нам.'); })
+        .catch(function (err) { show((err && err.error) || 'Не удалось отправить заявку. Попробуйте ещё раз или позвоните нам.'); })
         .then(function () { btn.disabled = false; btn.textContent = 'Продолжить'; });
     });
   });
 
-  // ---------- Личный кабинет: вход и восстановление пароля ----------
-  var loginForm = document.querySelector('[data-lk-login]');
-  var resetForm = document.querySelector('[data-lk-reset]');
-  if (loginForm && resetForm) {
-    var msg = function (form, text, ok) {
-      var m = form.querySelector('[data-msg]');
-      m.textContent = text; m.hidden = false; m.classList.toggle('is-ok', !!ok);
-    };
-    var invalid = function (input, bad) { input.closest('.field').classList.toggle('is-invalid', bad); return bad; };
+  // ---------- Личный кабинет ----------
+  var authForms = {};
+  document.querySelectorAll('form[data-auth]').forEach(function (f) { authForms[f.getAttribute('data-auth')] = f; });
+  var msg = function (form, text, ok) {
+    var m = form.querySelector('[data-msg]');
+    if (!text) { m.hidden = true; return; }
+    m.innerHTML = text; m.hidden = false; m.classList.toggle('is-ok', !!ok);
+  };
+  var invalid = function (input, bad) { input.closest('.field').classList.toggle('is-invalid', bad); return bad; };
+  var noApi = 'Демо-режим: регистрация и вход работают, когда сайт запущен на сервере (node server.js).';
+  var devNote = function (res) { return res && res.devCode ? ' Тестовый режим без СМС-шлюза: код <b>' + res.devCode + '</b>.' : ''; };
+
+  document.querySelectorAll('[data-toggle-pass]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var input = b.parentNode.querySelector('input');
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      b.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
+      b.classList.toggle('is-on', show);
+    });
+  });
+
+  if (authForms.login) {
+    var savedPhone = ''; try { savedPhone = sessionStorage.getItem('lk-phone') || ''; } catch (e) { /* ignore */ }
     var setMode = function (mode) {
-      loginForm.hidden = mode !== 'login'; resetForm.hidden = mode !== 'reset';
-      if (mode === 'reset' && loginForm.phone.value && !resetForm.phone.value) resetForm.phone.value = loginForm.phone.value;
-      (mode === 'login' ? loginForm : resetForm).phone.focus();
+      var from = Object.keys(authForms).filter(function (k) { return !authForms[k].hidden; })[0];
+      Object.keys(authForms).forEach(function (k) { authForms[k].hidden = k !== mode; });
+      document.querySelectorAll('.auth__tabs [data-auth-mode]').forEach(function (t) { t.setAttribute('aria-selected', t.getAttribute('data-auth-mode') === mode ? 'true' : 'false'); });
+      var to = authForms[mode];
+      var prev = from && authForms[from].phone.value;
+      if (!to.phone.value && (prev || savedPhone)) { to.phone.value = prev || savedPhone; to.phone.dispatchEvent(new Event('input')); }
+      to.phone.focus();
     };
     document.querySelectorAll('[data-auth-mode]').forEach(function (b) {
       b.addEventListener('click', function () { setMode(b.getAttribute('data-auth-mode')); });
     });
-    if (/reset_password=1/.test(location.search) || location.hash === '#reset') setMode('reset');
+    var initial = location.hash === '#register' ? 'register' : (location.hash === '#reset' || /reset_password=1/.test(location.search)) ? 'reset' : 'login';
+    setMode(initial);
 
-    document.querySelectorAll('[data-toggle-pass]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        var input = b.parentNode.querySelector('input');
-        var show = input.type === 'password';
-        input.type = show ? 'text' : 'password';
-        b.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
-        b.classList.toggle('is-on', show);
-      });
-    });
-
-    loginForm.addEventListener('submit', function (e) {
+    // Вход
+    authForms.login.addEventListener('submit', function (e) {
       e.preventDefault();
-      var badPhone = invalid(loginForm.phone, phoneDigits(loginForm.phone).length !== 11);
-      var badPass = invalid(loginForm.password, loginForm.password.value.length < 1);
-      if (badPhone || badPass) return;
-      var url = body.getAttribute('data-lk-login-url');
-      if (!url) { msg(loginForm, 'Демонстрационный режим: укажите lkLoginEndpoint в site.config.js, чтобы подключить вход.'); return; }
-      var btn = loginForm.querySelector('[type="submit"]'); btn.disabled = true;
-      postJson(url, { phone: '+' + phoneDigits(loginForm.phone), password: loginForm.password.value })
-        .then(function (res) { goal('lk_login'); location.href = res.redirect || body.getAttribute('data-lk') || '/'; })
-        .catch(function (err) { msg(loginForm, (err && err.error) || 'Неверный телефон или пароль.'); loginForm.password.value = ''; })
+      var f = authForms.login;
+      var bad = invalid(f.phone, phoneDigits(f.phone).length !== 11) | invalid(f.password, !f.password.value);
+      if (bad) return;
+      if (!API) return msg(f, noApi);
+      var btn = f.querySelector('[type="submit"]'); btn.disabled = true; msg(f, '');
+      postJson(API + '/login', { phone: '+' + phoneDigits(f.phone), password: f.password.value })
+        .then(function (res) { goal('lk_login'); location.href = BASE + (res.redirect || '/lk/'); })
+        .catch(function (err) { msg(f, (err && err.error) || 'Не удалось войти. Попробуйте позже.'); f.password.value = ''; })
         .then(function () { btn.disabled = false; });
     });
 
-    var step2 = resetForm.querySelector('[data-reset-step2]');
-    var resetBtn = resetForm.querySelector('[data-reset-btn]');
-    var toStep2 = function () { step2.hidden = false; resetBtn.textContent = 'Сохранить пароль'; resetForm.code.focus(); };
-    resetForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-      if (invalid(resetForm.phone, phoneDigits(resetForm.phone).length !== 11)) return;
-      var url = body.getAttribute('data-lk-reset-url');
-      var phone = '+' + phoneDigits(resetForm.phone);
-      var second = !step2.hidden;
-      if (second) {
-        var badCode = invalid(resetForm.code, resetForm.code.value.trim().length < 4);
-        var badPass = invalid(resetForm.password, resetForm.password.value.length < 8);
-        if (badCode || badPass) return;
-      }
-      if (!url) {
-        if (!second) toStep2();
-        msg(resetForm, 'Демонстрационный режим: укажите lkResetEndpoint в site.config.js.');
-        return;
-      }
-      resetBtn.disabled = true;
-      var data = second ? { phone: phone, code: resetForm.code.value.trim(), password: resetForm.password.value } : { phone: phone };
-      postJson(url, data)
-        .then(function () {
-          if (!second) { toStep2(); msg(resetForm, 'Код отправлен в СМС.', true); }
-          else { msg(resetForm, 'Пароль изменён. Теперь можно войти.', true); setTimeout(function () { setMode('login'); }, 1200); }
+    // Регистрация и восстановление: шаг 1 — код в СМС, шаг 2 — код и пароль
+    var codeFlow = function (f, path, step1Check, finish, done) {
+      var step2 = f.querySelector('[data-step2]');
+      var btn = f.querySelector('[data-submit]');
+      var label = btn.textContent;
+      f.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (invalid(f.phone, phoneDigits(f.phone).length !== 11)) return;
+        var phone = '+' + phoneDigits(f.phone);
+        var second = !step2.hidden;
+        if (!second && step1Check && !step1Check()) return;
+        if (second) {
+          var bad = invalid(f.code, f.code.value.trim().length !== 6) | invalid(f.password, f.password.value.length < 8);
+          if (f.password2) bad |= invalid(f.password2, f.password2.value !== f.password.value);
+          if (bad) return;
+        }
+        if (!API) return msg(f, noApi);
+        btn.disabled = true; msg(f, '');
+        var req = second ? postJson(API + path + '/finish', finish(phone)) : postJson(API + path + '/start', step1Check ? { phone: phone, consents: { pd: true, asp: true } } : { phone: phone });
+        req.then(function (res) {
+          if (!second) {
+            step2.hidden = false; f.phone.readOnly = true;
+            btn.textContent = done.button;
+            var s1 = f.querySelector('[data-step1]'); if (s1) s1.hidden = true;
+            msg(f, 'Мы отправили код в СМС на ' + f.phone.value + '.' + devNote(res), true);
+            f.code.focus();
+          } else done.ok(res);
         })
-        .catch(function (err) { msg(resetForm, (err && err.error) || 'Не удалось выполнить запрос. Попробуйте позже.'); })
-        .then(function () { resetBtn.disabled = false; });
+          .catch(function (err) { msg(f, (err && err.error) || 'Не удалось выполнить запрос. Попробуйте позже.'); })
+          .then(function () { btn.disabled = false; });
+      });
+      void label;
+    };
+
+    codeFlow(authForms.register, '/register', function () {
+      var f = authForms.register;
+      var ok = f.pd.checked && f.asp.checked;
+      if (!ok) msg(f, 'Отметьте оба согласия, чтобы продолжить.');
+      return ok;
+    }, function (phone) {
+      var f = authForms.register;
+      return { phone: phone, code: f.code.value.trim(), password: f.password.value };
+    }, {
+      button: 'Зарегистрироваться',
+      ok: function (res) { goal('lk_register'); location.href = BASE + (res.redirect || '/lk/'); },
+    });
+
+    codeFlow(authForms.reset, '/reset', null, function (phone) {
+      var f = authForms.reset;
+      return { phone: phone, code: f.code.value.trim(), password: f.password.value };
+    }, {
+      button: 'Сохранить пароль',
+      ok: function () {
+        msg(authForms.reset, 'Пароль изменён. Теперь войдите с новым паролем.', true);
+        setTimeout(function () { authForms.login.password.value = ''; setMode('login'); }, 1200);
+      },
+    });
+  }
+
+  // Страница кабинета
+  var cab = document.querySelector('[data-cab]');
+  if (cab) {
+    var user = cab.querySelector('[data-cab-user]');
+    var appsBox = cab.querySelector('[data-cab-apps]');
+    var cabMsg = cab.querySelector('[data-msg]');
+    var esc = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+    var fmtPhone = function (p) { var d = p.replace(/\D/g, ''); return '+7 (' + d.slice(1, 4) + ') ' + d.slice(4, 7) + '-' + d.slice(7, 9) + '-' + d.slice(9, 11); };
+    if (!API) {
+      user.textContent = '';
+      appsBox.innerHTML = '';
+      cabMsg.textContent = noApi; cabMsg.hidden = false;
+    } else {
+      postJson(API + '/me')
+        .then(function (me) {
+          user.textContent = fmtPhone(me.phone) + ' · с ' + new Date(me.createdAt).toLocaleDateString('ru-RU');
+          appsBox.innerHTML = me.applications.length
+            ? '<ul class="apps">' + me.applications.map(function (a) {
+              return '<li><div><strong>' + fmt(a.amount) + ' на ' + a.term + NB + plural(a.term, days) + '</strong><span>' + new Date(a.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) + '</span></div><span class="apps__st">' + esc(a.status) + '</span></li>';
+            }).join('') + '</ul>'
+            : '<p class="muted">Заявок пока нет.</p>';
+        })
+        .catch(function () { location.href = BASE + '/lk/login/'; });
+    }
+    var out = cab.querySelector('[data-logout]');
+    out.addEventListener('click', function () {
+      if (!API) { location.href = BASE + '/lk/login/'; return; }
+      postJson(API + '/logout', {}).then(function () { location.href = BASE + '/lk/login/'; });
     });
   }
 
