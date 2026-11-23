@@ -28,6 +28,9 @@ rm -f /etc/nginx/sites-enabled/default
 nginx -t
 systemctl reload nginx
 
+# DNS провайдера может отдавать нерабочий адрес Telegram Bot API — закрепляем рабочий
+grep -q api.telegram.org /etc/hosts || echo '149.154.167.220 api.telegram.org' >> /etc/hosts
+
 ufw allow OpenSSH
 ufw allow 'Nginx Full'
 ufw --force enable

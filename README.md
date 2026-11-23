@@ -26,7 +26,7 @@ node serve.js      # открыть http://localhost:8080
 ## Коды подтверждения
 
 - **СМС**: `SMS_API_URL`, `SMS_API_TOKEN` в `/etc/mfo-site.env`, затем убрать `SMS_DEMO=1` из службы.
-- **Telegram**: создать бота в @BotFather, записать `TG_BOT_TOKEN=...` и `TG_BOT_NAME=имя_бота` в `/etc/mfo-site.env`, `systemctl restart mfo-site`. Бот просит «Поделиться номером» и присылает код, только если номер совпадает.
+- **Telegram**: создать бота в @BotFather, записать `TG_BOT_TOKEN=...` и `TG_BOT_NAME=имя_бота` в `/etc/mfo-site.env`, `systemctl restart mfo-site`. Бот просит «Поделиться номером» и присылает код, только если номер совпадает. Подключён бот @mfositebot. На VPS в `/etc/hosts` закреплён рабочий адрес `api.telegram.org` (DNS провайдера отдаёт недоступный).
 
 ## Страницы
 
