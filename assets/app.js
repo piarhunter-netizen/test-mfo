@@ -159,7 +159,7 @@
       var btn = form.querySelector('[type="submit"]');
       var payload = {
         phone: '+' + digits, amount: +form.amount.value, term: +form.term.value,
-        consents: { docs: true, pd: true, bki: true, asp: true, ads: form.ads.checked },
+        consents: { docs: true, pd: true, bki: true, asp: true },
         consentedAt: new Date().toISOString(), page: location.pathname, utm: readUtm(), referrer: document.referrer,
       };
       var endpoint = body.getAttribute('data-endpoint');

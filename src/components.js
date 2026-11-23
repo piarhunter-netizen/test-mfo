@@ -108,7 +108,6 @@ const consentFields = () => `
       <label class="check"><input type="checkbox" name="pd" required><span><a href="/soglasie-na-obrabotku-pd/" target="_blank">согласие на обработку персональных данных</a></span></label>
       <label class="check"><input type="checkbox" name="bki" required><span>согласие на запрос кредитной истории в БКИ</span></label>
       <label class="check"><input type="checkbox" name="asp" required><span><a href="/dokumenty/#asp" target="_blank">соглашение о простой электронной подписи</a></span></label>
-      <label class="check check--optional"><input type="checkbox" name="ads"><span>хочу получать новости и предложения — необязательно</span></label>
     </fieldset>
     <p class="field__err" data-err="consents">Отметьте обязательные согласия</p>`;
 
