@@ -330,10 +330,10 @@
     } else {
       postJson(API + '/me')
         .then(function (me) {
-          user.innerHTML = '<span class="cab__dot"></span>Вы вошли как <b>' + fmtPhone(me.phone) + '</b> · в кабинете с ' + new Date(me.createdAt).toLocaleDateString('ru-RU');
+          user.innerHTML = '<span class="cab__dot"></span><span>Вы вошли как <b class="nowrap">' + fmtPhone(me.phone) + '</b></span><span class="cab__since">в кабинете с ' + new Date(me.createdAt).toLocaleDateString('ru-RU') + '</span>';
           appsBox.innerHTML = me.applications.length
             ? '<ul class="apps">' + me.applications.map(function (a) {
-              return '<li><div><strong>' + fmt(a.amount) + ' на ' + a.term + NB + plural(a.term, days) + '</strong><span>' + new Date(a.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) + '</span></div><span class="apps__st">' + esc(a.status) + '</span></li>';
+              return '<li><div><strong>' + fmt(a.amount) + ' на ' + a.term + NB + plural(a.term, days) + '</strong><span>' + new Date(a.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) + '</span></div><span class="apps__st ' + ({ 'Одобрена': 'is-ok', 'Выдана': 'is-ok', 'Отказ': 'is-bad', 'Погашена': 'is-done', 'Отменена': 'is-done' }[a.status] || '') + '">' + esc(a.status) + '</span></li>';
             }).join('') + '</ul>'
             : '<p class="muted">Заявок пока нет.</p>';
         })

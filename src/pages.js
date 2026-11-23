@@ -6,6 +6,8 @@ const { icon, pskBox, faqBlock, faqSchema, features, conditionsTable, cta, riskN
 const { orgId } = require('./layout');
 
 const C = cfg.company;
+// PDF, которых ещё нет в static/docs, — сборка напомнит о них в консоли
+const missingDocs = [];
 const K = cfg.contacts;
 const L = cfg.loan;
 const maxM = money(L.maxAmount);
@@ -229,7 +231,7 @@ const dokumenty = {
         const exists = fs.existsSync(path.join(__dirname, '..', 'static', 'docs', file + '.pdf'));
         return exists
           ? `<li class="doc"${id}>${icon('doc', 'doc__ico')}<a href="/docs/${file}.pdf" target="_blank" rel="noopener">${name}</a><span class="doc__meta">PDF</span></li>`
-          : `<li class="doc doc--missing"${id}>${icon('doc', 'doc__ico')}<span>${name}</span><span class="doc__meta">добавьте static/docs/${file}.pdf</span></li>`;
+          : (missingDocs.push(`static/docs/${file}.pdf`), `<li class="doc doc--missing"${id}>${icon('doc', 'doc__ico')}<span>${name}</span><span class="doc__meta">готовится к публикации</span></li>`);
       })
       .join('\n    ')}
   </ul>
@@ -380,3 +382,4 @@ const notFound = {
 };
 
 module.exports = [home, usloviya, dokumenty, lkLogin, lkCabinet, admin, notFound];
+module.exports.missingDocs = missingDocs;

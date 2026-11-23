@@ -177,6 +177,7 @@ write(
 // Отчёт
 const placeholders = JSON.stringify(cfg).match(/\[[^\]]+\]|0{9,}/g) || [];
 console.log(`✓ Собрано страниц: ${pages.length} → ${path.relative(ROOT, OUT)}/`);
+if (mainPages.missingDocs && mainPages.missingDocs.length) console.log(`! Нет PDF-документов: ${mainPages.missingDocs.length} (положите в static/docs/)`);
 if (placeholders.length) console.log(`! В site.config.js осталось заглушек: ${placeholders.length} — заполните реквизиты перед публикацией.`);
 if (problems.length) {
   console.log('! Замечания:\n  - ' + problems.join('\n  - '));
