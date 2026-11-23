@@ -5,7 +5,7 @@
  */
 module.exports = {
   // Боевой адрес сайта без слэша на конце — используется в canonical, sitemap, Open Graph
-  url: 'https://yasnozaym.ru',
+  url: 'https://vietrp.com',
   lang: 'ru',
 
   brand: 'ЯсноЗайм',
