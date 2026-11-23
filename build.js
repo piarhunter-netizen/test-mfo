@@ -55,7 +55,7 @@ const hash = (f) => crypto.createHash('md5').update(fs.readFileSync(f)).digest('
 rm(OUT);
 copyDir(path.join(ROOT, 'assets'), path.join(OUT, 'assets'));
 copyDir(path.join(ROOT, 'static'), OUT);
-const assets = { css: hash(path.join(ROOT, 'assets/styles.css')), js: hash(path.join(ROOT, 'assets/app.js')) };
+const assets = { css: hash(path.join(ROOT, 'assets/styles.css')), js: hash(path.join(ROOT, 'assets/app.js')), 'admin.js': hash(path.join(ROOT, 'assets/admin.js')) };
 
 // ---------- PNG без зависимостей (og-картинка и иконки) ----------
 function png(w, h, pixel) {
@@ -123,7 +123,7 @@ for (const p of pages) {
   // Цитаты в «ёлочках» — это примеры недопустимых обещаний в предупреждениях, их не проверяем
   const text = html.replace(/<[^>]+>/g, ' ').replace(/«[^»]*»/g, '');
   for (const re of banned) if (re.test(text)) problems.push(`${p.path}: недопустимая формулировка ${re}`);
-  if ((html.match(/<h1[\s>]/g) || []).length !== 1) problems.push(`${p.path}: должен быть ровно один h1`);
+  if (!p.bare && (html.match(/<h1[\s>]/g) || []).length !== 1) problems.push(`${p.path}: должен быть ровно один h1`);
   write(p.file || path.join(p.path, 'index.html'), html);
 }
 
@@ -144,12 +144,14 @@ write(
   `User-agent: *
 Allow: /
 Disallow: /lk/
+Disallow: /admin/
 Disallow: /*?
 Allow: /*?v=
 
 User-agent: Yandex
 Allow: /
 Disallow: /lk/
+Disallow: /admin/
 Clean-param: utm_source&utm_medium&utm_campaign&utm_content&utm_term&yclid&gclid&from /
 
 Sitemap: ${absUrl('/sitemap.xml')}

@@ -193,39 +193,71 @@
         .then(function () { btn.disabled = false; });
     });
 
-    // Регистрация и восстановление: шаг 1 — код в СМС, шаг 2 — код и пароль
+    // Регистрация и восстановление: шаг 1 — код по СМС или в Telegram, шаг 2 — код и пароль
     var codeFlow = function (f, path, step1Check, finish, done) {
       var step2 = f.querySelector('[data-step2]');
-      var btn = f.querySelector('[data-submit]');
-      var label = btn.textContent;
+      var send = f.querySelector('[data-send]');
+      var finishBtn = f.querySelector('[data-finish]');
+      var resend = f.querySelector('[data-resend]');
+      var resendBtn = f.querySelector('[data-resend-btn]');
+      var timerEl = f.querySelector('[data-timer]');
+      var channel = 'sms', timer = null;
+      var countdown = function () {
+        var left = 60; resendBtn.disabled = true; clearInterval(timer);
+        var tick = function () { timerEl.textContent = left > 0 ? 'через ' + left + ' с' : ''; if (left-- <= 0) { clearInterval(timer); resendBtn.disabled = false; } };
+        tick(); timer = setInterval(tick, 1000);
+      };
+      var requestCode = function (ch) {
+        if (invalid(f.phone, phoneDigits(f.phone).length !== 11)) return;
+        if (step1Check && !step1Check()) return;
+        if (!API) return msg(f, noApi);
+        channel = ch;
+        var phone = '+' + phoneDigits(f.phone);
+        var data = { phone: phone, channel: ch };
+        if (step1Check) data.consents = { pd: true, asp: true };
+        // окно для Telegram открываем сразу по клику, иначе браузер заблокирует всплывающее окно
+        var win = ch === 'tg' ? window.open('', '_blank') : null;
+        f.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
+        msg(f, '');
+        postJson(API + path + '/start', data).then(function (res) {
+          step2.hidden = false; f.phone.readOnly = true;
+          send.hidden = true; finishBtn.hidden = false; resend.hidden = false;
+          var s1 = f.querySelector('[data-step1]'); if (s1) s1.hidden = true;
+          if (res.tgLink) {
+            if (win) win.location.href = res.tgLink;
+            msg(f, 'Откройте бота, нажмите <b>«Поделиться номером»</b> — код придёт в чат. <a href="' + res.tgLink + '" target="_blank" rel="noopener">Открыть Telegram</a>', true);
+          } else {
+            if (win) win.close();
+            msg(f, 'Мы отправили код в СМС на ' + f.phone.value + '.' + devNote(res), true);
+          }
+          countdown();
+          f.code.focus();
+        })
+          .catch(function (err) { if (win) win.close(); msg(f, (err && err.error) || 'Не удалось выполнить запрос. Попробуйте позже.'); })
+          .then(function () { f.querySelectorAll('button').forEach(function (x) { if (x !== resendBtn) x.disabled = false; }); });
+      };
+      resendBtn.addEventListener('click', function () { requestCode(channel); });
       f.addEventListener('submit', function (e) {
         e.preventDefault();
-        if (invalid(f.phone, phoneDigits(f.phone).length !== 11)) return;
-        var phone = '+' + phoneDigits(f.phone);
-        var second = !step2.hidden;
-        if (!second && step1Check && !step1Check()) return;
-        if (second) {
-          var bad = invalid(f.code, f.code.value.trim().length !== 6) | invalid(f.password, f.password.value.length < 8);
-          if (f.password2) bad |= invalid(f.password2, f.password2.value !== f.password.value);
-          if (bad) return;
+        if (step2.hidden) {
+          var btn = e.submitter && e.submitter.getAttribute('data-channel');
+          return requestCode(btn || 'sms');
         }
-        if (!API) return msg(f, noApi);
-        btn.disabled = true; msg(f, '');
-        var req = second ? postJson(API + path + '/finish', finish(phone)) : postJson(API + path + '/start', step1Check ? { phone: phone, consents: { pd: true, asp: true } } : { phone: phone });
-        req.then(function (res) {
-          if (!second) {
-            step2.hidden = false; f.phone.readOnly = true;
-            btn.textContent = done.button;
-            var s1 = f.querySelector('[data-step1]'); if (s1) s1.hidden = true;
-            msg(f, 'Мы отправили код в СМС на ' + f.phone.value + '.' + devNote(res), true);
-            f.code.focus();
-          } else done.ok(res);
-        })
+        var bad = invalid(f.code, f.code.value.trim().length !== 6) | invalid(f.password, f.password.value.length < 8);
+        if (f.password2) bad |= invalid(f.password2, f.password2.value !== f.password.value);
+        if (bad) return;
+        finishBtn.disabled = true; msg(f, '');
+        postJson(API + path + '/finish', finish('+' + phoneDigits(f.phone)))
+          .then(function (res) { clearInterval(timer); done.ok(res); })
           .catch(function (err) { msg(f, (err && err.error) || 'Не удалось выполнить запрос. Попробуйте позже.'); })
-          .then(function () { btn.disabled = false; });
+          .then(function () { finishBtn.disabled = false; });
       });
-      void label;
     };
+
+    // Показываем кнопку Telegram, если бот подключён на сервере
+    if (API) postJson(API + '/config').then(function (c) {
+      if (c.tg) document.querySelectorAll('[data-tg]').forEach(function (b) { b.hidden = false; });
+    }).catch(function () { /* ignore */ });
 
     codeFlow(authForms.register, '/register', function () {
       var f = authForms.register;
@@ -236,7 +268,6 @@
       var f = authForms.register;
       return { phone: phone, code: f.code.value.trim(), password: f.password.value };
     }, {
-      button: 'Зарегистрироваться',
       ok: function (res) { goal('lk_register'); location.href = BASE + (res.redirect || '/lk/'); },
     });
 
@@ -244,7 +275,6 @@
       var f = authForms.reset;
       return { phone: phone, code: f.code.value.trim(), password: f.password.value };
     }, {
-      button: 'Сохранить пароль',
       ok: function () {
         msg(authForms.reset, 'Пароль изменён. Теперь войдите с новым паролем.', true);
         setTimeout(function () { authForms.login.password.value = ''; setMode('login'); }, 1200);

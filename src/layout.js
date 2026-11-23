@@ -180,14 +180,15 @@ const pageHeader = (page) =>
 const render = (page, assets) => `${head(page, assets)}
 <body data-api="${esc(cfg.apiBase)}" data-base="${esc(base)}" data-metrika="${esc(cfg.metrikaId)}">
 <a class="skip" href="#main">Перейти к содержанию</a>
-${header(page)}
+${page.bare ? '' : header(page)}
 <main id="main">
 ${pageHeader(page)}
 ${page.body}
 </main>
-${footer()}
+${page.bare ? '' : footer()}
 ${cfg.metrikaId ? cookieBanner() : ''}
-<script src="/assets/app.js?v=${assets.js}" defer></script>
+${page.bare ? '' : `<script src="/assets/app.js?v=${assets.js}" defer></script>`}
+${page.script ? `<script src="/assets/${page.script}?v=${assets[page.script] || ''}" defer></script>` : ''}
 </body>
 </html>
 `;

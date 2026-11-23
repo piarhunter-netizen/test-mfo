@@ -1,7 +1,8 @@
 # systemd-служба сайта: /etc/systemd/system/mfo-site.service
 [Unit]
-Description=MFO site (static + API)
-After=network.target
+Description=MFO site (static + API + admin)
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 User=mfo
@@ -13,6 +14,8 @@ Environment=HOST=127.0.0.1
 Environment=DATA_DIR=/var/lib/mfo-site
 # ВРЕМЕННО: без СМС-шлюза код показывается на странице. Уберите после подключения SMS_API_URL.
 Environment=SMS_DEMO=1
+# Секреты (TG_BOT_TOKEN, TG_BOT_NAME, SMS_API_URL, SMS_API_TOKEN) — в отдельном файле с правами 600
+EnvironmentFile=-/etc/mfo-site.env
 ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=3
@@ -21,6 +24,14 @@ ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths=/var/lib/mfo-site
 PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+UMask=0077
 
 [Install]
 WantedBy=multi-user.target

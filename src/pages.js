@@ -48,13 +48,46 @@ const home = {
     faqSchema(homeFaq),
   ],
   body: `
-<section class="hero hero--one">
+<section class="hero hero--promo">
   <div class="container hero__in">
-    <div class="hero__text">
-      <h1 class="hero__t">Займ до${NBSP}${maxM} на${NBSP}карту</h1>
-      <p class="hero__lead">Оформление онлайн за 10 минут. Сумму к возврату и полную стоимость вы видите до подписания договора.</p>
-    </div>
     <div class="hero__calc">${applyCard('loan')}</div>
+    <div class="promo">
+      <div class="promo__text">
+        <h1 class="promo__t">Займ до${NBSP}${maxM} на${NBSP}карту</h1>
+        <p class="promo__lead">Решение обычно за несколько минут. Сумму к возврату и полную стоимость видно до подписания договора.</p>
+        <a class="promo__btn" href="/#how">Как это работает</a>
+      </div>
+      <svg class="promo__art" viewBox="0 0 520 420" aria-hidden="true">
+        <defs>
+          <linearGradient id="pc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".95"/><stop offset="1" stop-color="#d9f3ea" stop-opacity=".9"/></linearGradient>
+          <linearGradient id="coin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe29a"/><stop offset="1" stop-color="#f4b740"/></linearGradient>
+        </defs>
+        <g class="promo__waves" fill="#ffffff" fill-opacity=".09">
+          <path d="M0 330c60-40 120-40 180 0s120 40 180 0 120-40 160-10v100H0z"/>
+          <path d="M0 370c70-30 130-30 190 5s130 35 190 0 100-30 140-10v65H0z" fill-opacity=".08"/>
+        </g>
+        <g class="promo__card">
+          <rect x="190" y="70" width="270" height="170" rx="22" fill="url(#pc)"/>
+          <rect x="216" y="104" width="44" height="32" rx="7" fill="#f4c25b"/>
+          <path d="M216 120h44M238 104v32" stroke="#d9a23c" stroke-width="2"/>
+          <rect x="216" y="168" width="150" height="12" rx="6" fill="#0b6b58" fill-opacity=".25"/>
+          <rect x="216" y="192" width="90" height="10" rx="5" fill="#0b6b58" fill-opacity=".15"/>
+          <circle cx="410" cy="200" r="16" fill="#0b6b58" fill-opacity=".25"/><circle cx="432" cy="200" r="16" fill="#0b6b58" fill-opacity=".15"/>
+        </g>
+        <g class="promo__coins">
+          <ellipse cx="140" cy="262" rx="52" ry="16" fill="#c98f1f"/>
+          <rect x="88" y="232" width="104" height="30" fill="#e0a52f"/>
+          <ellipse cx="140" cy="232" rx="52" ry="16" fill="url(#coin)"/>
+          <ellipse cx="140" cy="216" rx="52" ry="16" fill="#c98f1f"/>
+          <rect x="88" y="190" width="104" height="26" fill="#e0a52f"/>
+          <ellipse cx="140" cy="190" rx="52" ry="16" fill="url(#coin)"/>
+          <text x="140" y="196" text-anchor="middle" font-size="20" font-weight="800" fill="#b07a12">₽</text>
+        </g>
+        <g class="promo__spark" fill="#ffffff">
+          <circle cx="470" cy="40" r="5" fill-opacity=".7"/><circle cx="90" cy="110" r="4" fill-opacity=".5"/><circle cx="330" cy="290" r="6" fill-opacity=".35"/>
+        </g>
+      </svg>
+    </div>
   </div>
 </section>
 
@@ -250,18 +283,28 @@ const lkLogin = {
         ${field('Придумайте пароль', passInput('password', 'new-password'), 'Не короче 8 символов')}
         ${field('Повторите пароль', passInput('password2', 'new-password'), 'Пароли не совпадают')}
       </div>
-      <button class="btn btn--primary btn--lg btn--block" type="submit" data-submit>Получить код</button>
+      <div class="auth__send" data-send>
+        <button class="btn btn--primary btn--lg btn--block" type="submit" data-channel="sms">Получить код по СМС</button>
+        <button class="btn btn--tg btn--lg btn--block" type="submit" data-channel="tg" data-tg hidden><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M21.5 3.6 2.9 10.8c-1.3.5-1.3 1.2-.2 1.6l4.8 1.5 1.8 5.6c.2.6.4.8.9.8.4 0 .6-.2.9-.5l2.3-2.2 4.7 3.5c.9.5 1.5.2 1.7-.8l3.1-14.6c.3-1.3-.5-1.9-1.4-1.5ZM9.6 14.3l-.4 4-1.4-4.6 10.5-6.6-8.7 7.2Z"/></svg>Получить код в Telegram</button>
+      </div>
+      <button class="btn btn--primary btn--lg btn--block" type="submit" data-finish hidden>Зарегистрироваться</button>
+      <p class="auth__resend" data-resend hidden>Не пришёл код? <button class="linklike" type="button" data-resend-btn disabled>Отправить ещё раз</button> <span class="muted" data-timer></span></p>
       <div class="auth__msg" data-msg hidden></div>
     </form>
 
     <form class="auth__form" data-auth="reset" novalidate hidden>
-      <p class="auth__sub">Отправим код в СМС на номер, указанный при регистрации.</p>
+      <p class="auth__sub">Отправим код по СМС или в Telegram на номер, указанный при регистрации.</p>
       ${field('Телефон', phoneInput, 'Введите номер полностью')}
       <div data-step2 hidden>
         ${field('Код из СМС', '<input class="input" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6">', 'Введите код из СМС')}
         ${field('Новый пароль', passInput('password', 'new-password'), 'Не короче 8 символов')}
       </div>
-      <button class="btn btn--primary btn--lg btn--block" type="submit" data-submit>Получить код</button>
+      <div class="auth__send" data-send>
+        <button class="btn btn--primary btn--lg btn--block" type="submit" data-channel="sms">Получить код по СМС</button>
+        <button class="btn btn--tg btn--lg btn--block" type="submit" data-channel="tg" data-tg hidden><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M21.5 3.6 2.9 10.8c-1.3.5-1.3 1.2-.2 1.6l4.8 1.5 1.8 5.6c.2.6.4.8.9.8.4 0 .6-.2.9-.5l2.3-2.2 4.7 3.5c.9.5 1.5.2 1.7-.8l3.1-14.6c.3-1.3-.5-1.9-1.4-1.5ZM9.6 14.3l-.4 4-1.4-4.6 10.5-6.6-8.7 7.2Z"/></svg>Получить код в Telegram</button>
+      </div>
+      <button class="btn btn--primary btn--lg btn--block" type="submit" data-finish hidden>Сохранить пароль</button>
+      <p class="auth__resend" data-resend hidden>Не пришёл код? <button class="linklike" type="button" data-resend-btn disabled>Отправить ещё раз</button> <span class="muted" data-timer></span></p>
       <p class="auth__links"><button class="linklike" type="button" data-auth-mode="login">Вернуться ко входу</button></p>
       <div class="auth__msg" data-msg hidden></div>
     </form>
@@ -308,6 +351,20 @@ const lkCabinet = {
 </section>`,
 };
 
+// ---------- Админка ----------
+const admin = {
+  path: '/admin/',
+  title: `Админка — ${cfg.brand}`,
+  description: 'Служебный раздел для сотрудников компании.',
+  h1: 'Админка',
+  customHero: true,
+  bare: true,
+  noindex: true,
+  noSitemap: true,
+  script: 'admin.js',
+  body: '<div data-admin><p class="adm-loading">Загрузка…</p></div>',
+};
+
 // ---------- 404 ----------
 const notFound = {
   path: '/404.html',
@@ -321,4 +378,4 @@ const notFound = {
   body: `<div class="container narrow"><p class="btn-row"><a class="btn btn--primary" href="/">На главную</a><a class="btn btn--ghost" href="/lk/login/">Личный кабинет</a></p></div>`,
 };
 
-module.exports = [home, usloviya, dokumenty, lkLogin, lkCabinet, notFound];
+module.exports = [home, usloviya, dokumenty, lkLogin, lkCabinet, admin, notFound];

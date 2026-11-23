@@ -1,0 +1,7 @@
+# Ежедневная копия базы: /etc/systemd/system/mfo-backup.service (+ mfo-backup.timer)
+[Unit]
+Description=Backup MFO site database
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'mkdir -p /var/backups/mfo-site && chmod 700 /var/backups/mfo-site && cp /var/lib/mfo-site/db.json /var/backups/mfo-site/db-$(date +%%Y%%m%%d-%%H%%M).json 2>/dev/null; ls -1t /var/backups/mfo-site/db-*.json 2>/dev/null | tail -n +31 | xargs -r rm -f'
