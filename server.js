@@ -391,6 +391,23 @@ const routes = {
 };
 
 // ---------- Админка ----------
+const PERMS = {
+  apps_view: 'Просмотр заявок',
+  apps_edit: 'Изменение статусов и заметок',
+  export: 'Выгрузка заявок в Excel',
+  phones: 'Полные номера телефонов',
+  users_view: 'Просмотр пользователей',
+  users_block: 'Блокировка пользователей',
+  audit: 'Журнал действий',
+};
+const DEFAULT_PERMS = ['apps_view', 'apps_edit'];
+const can = (admin, p) => !!admin && (admin.owner || (admin.perms || []).includes(p));
+const cleanPerms = (list) => (Array.isArray(list) ? [...new Set(list.filter((p) => Object.prototype.hasOwnProperty.call(PERMS, p)))] : []);
+// Сотрудникам без настроенных прав (созданным до появления прав) — минимальный набор
+for (const a of db.admins) if (!a.owner && !Array.isArray(a.perms)) a.perms = DEFAULT_PERMS.slice();
+// Без права «phones» номер показывается частично
+const maskPhone = (p) => { const d = String(p).replace(/\D/g, ''); return `+7 (${d.slice(1, 4)}) ***-**-${d.slice(9, 11)}`; };
+const showPhone = (admin, p) => (can(admin, 'phones') ? p : maskPhone(p));
 const adminByLogin = (login) => db.admins.find((a) => a.login === login);
 const currentAdmin = (req) => {
   const token = parseCookies(req).asid;
@@ -416,7 +433,7 @@ const startAdminSession = (req, res, admin) => {
   addCookie(res, cookie(req, 'asid', token, { maxAge: ADMIN_SESSION_HOURS * 3600, path: '/api/admin', sameSite: 'Strict' }));
 };
 const validLogin = (l) => typeof l === 'string' && /^[a-zA-Z0-9._-]{3,32}$/.test(l);
-const publicApp = (a) => ({ ...a, registered: !!findUser(a.phone) });
+const publicApp = (a, admin) => ({ id: a.id, phone: showPhone(admin, a.phone), masked: !can(admin, 'phones'), amount: a.amount, term: a.term, status: a.status, comment: a.comment, createdAt: a.createdAt, updatedAt: a.updatedAt, utm: a.utm, verified: !!a.verified, registered: !!findUser(a.phone) });
 const csvCell = (v) => {
   let s = String(v == null ? '' : v);
   if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // защита от формул в Excel
@@ -426,7 +443,7 @@ const csvCell = (v) => {
 const adminRoutes = [
   ['GET', /^\/api\/admin\/state$/, async (req, res) => {
     const admin = currentAdmin(req);
-    json(res, 200, { needSetup: db.admins.length === 0, admin: admin ? { login: admin.login, owner: !!admin.owner } : null });
+    json(res, 200, { needSetup: db.admins.length === 0, admin: admin ? { login: admin.login, owner: !!admin.owner, perms: admin.owner ? Object.keys(PERMS) : (admin.perms || []) } : null, permNames: PERMS });
   }, { public: true }],
   ['POST', /^\/api\/admin\/setup$/, async (req, res, b) => {
     if (db.admins.length) return json(res, 403, { error: 'Администратор уже создан.' });
@@ -481,8 +498,8 @@ const adminRoutes = [
       applicationsToday: db.applications.filter((a) => a.createdAt.startsWith(today)).length,
       byStatus, sumIssued, statuses: STATUSES,
     });
-  }],
-  ['GET', /^\/api\/admin\/applications$/, async (req, res, b, url) => {
+  }, { perm: 'apps_view' }],
+  ['GET', /^\/api\/admin\/applications$/, async (req, res, b, url, m, admin) => {
     const status = url.searchParams.get('status') || '';
     const q = (url.searchParams.get('q') || '').replace(/\D/g, '');
     const page = Math.max(1, +url.searchParams.get('page') || 1);
@@ -490,8 +507,8 @@ const adminRoutes = [
     if (status) list = list.filter((a) => a.status === status);
     if (q) list = list.filter((a) => a.phone.replace(/\D/g, '').includes(q));
     const per = 50;
-    json(res, 200, { total: list.length, page, pages: Math.max(1, Math.ceil(list.length / per)), items: list.slice((page - 1) * per, page * per).map(publicApp), statuses: STATUSES });
-  }],
+    json(res, 200, { total: list.length, page, pages: Math.max(1, Math.ceil(list.length / per)), items: list.slice((page - 1) * per, page * per).map((a) => publicApp(a, admin)), statuses: STATUSES });
+  }, { perm: 'apps_view' }],
   ['POST', /^\/api\/admin\/applications\/([0-9a-f-]{36})$/, async (req, res, b, url, m, admin) => {
     const app = db.applications.find((a) => a.id === m[1]);
     if (!app) return json(res, 404, { error: 'Заявка не найдена.' });
@@ -504,13 +521,13 @@ const adminRoutes = [
       const c = cleanStr(b.comment, 1000);
       if (c !== app.comment) { changes.push('комментарий изменён'); app.comment = c; }
     }
-    if (changes.length) { app.updatedAt = now(); audit(admin, 'Изменена заявка', `${app.phone} · ${app.amount} ₽`, changes.join('; ')); }
-    json(res, 200, { ok: true, item: publicApp(app) });
-  }],
+    if (changes.length) { app.updatedAt = now(); audit(admin, 'Изменена заявка', `${maskPhone(app.phone)} · ${app.amount} ₽`, changes.join('; ')); }
+    json(res, 200, { ok: true, item: publicApp(app, admin) });
+  }, { perm: 'apps_edit' }],
   ['GET', /^\/api\/admin\/applications\.csv$/, async (req, res, b, url, m, admin) => {
     const head = ['Дата', 'Телефон', 'Сумма', 'Срок, дн.', 'Статус', 'Комментарий', 'Зарегистрирован', 'utm_source', 'utm_medium', 'utm_campaign', 'IP'];
     const rows = db.applications.slice().reverse().map((a) => [
-      new Date(a.createdAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }), a.phone, a.amount, a.term, a.status, a.comment,
+      new Date(a.createdAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }), showPhone(admin, a.phone), a.amount, a.term, a.status, a.comment,
       findUser(a.phone) ? 'да' : 'нет', (a.utm || {}).utm_source, (a.utm || {}).utm_medium, (a.utm || {}).utm_campaign, a.ip,
     ]);
     audit(admin, 'Выгрузка заявок в CSV', '', `${rows.length} строк`);
@@ -519,38 +536,38 @@ const adminRoutes = [
       'Content-Disposition': `attachment; filename="applications-${new Date().toISOString().slice(0, 10)}.csv"`, ...SECURITY_HEADERS,
     });
     res.end('﻿' + [head, ...rows].map((r) => r.map(csvCell).join(';')).join('\r\n'));
-  }],
-  ['GET', /^\/api\/admin\/users$/, async (req, res, b, url) => {
+  }, { perm: 'export' }],
+  ['GET', /^\/api\/admin\/users$/, async (req, res, b, url, m, admin) => {
     const q = (url.searchParams.get('q') || '').replace(/\D/g, '');
     let list = db.users.slice().reverse();
     if (q) list = list.filter((u) => u.phone.replace(/\D/g, '').includes(q));
     json(res, 200, {
       total: list.length,
       items: list.slice(0, 200).map((u) => ({
-        id: u.id, phone: u.phone, createdAt: u.createdAt, blocked: !!u.blocked,
+        id: u.id, phone: showPhone(admin, u.phone), masked: !can(admin, 'phones'), createdAt: u.createdAt, blocked: !!u.blocked,
         applications: db.applications.filter((a) => a.phone === u.phone).length,
         online: Object.values(db.sessions).some((s) => s.userId === u.id && s.exp > Date.now()),
       })),
     });
-  }],
+  }, { perm: 'users_view' }],
   ['POST', /^\/api\/admin\/users\/([0-9a-f-]{36})$/, async (req, res, b, url, m, admin) => {
     const user = db.users.find((u) => u.id === m[1]);
     if (!user) return json(res, 404, { error: 'Пользователь не найден.' });
     if (typeof b.blocked === 'boolean' && b.blocked !== !!user.blocked) {
       user.blocked = b.blocked;
       if (b.blocked) dropUserSessions(user.id);
-      audit(admin, b.blocked ? 'Пользователь заблокирован' : 'Пользователь разблокирован', user.phone);
+      audit(admin, b.blocked ? 'Пользователь заблокирован' : 'Пользователь разблокирован', maskPhone(user.phone));
     }
-    if (b.logout === true) { dropUserSessions(user.id); audit(admin, 'Завершены сеансы пользователя', user.phone); }
+    if (b.logout === true) { dropUserSessions(user.id); audit(admin, 'Завершены сеансы пользователя', maskPhone(user.phone)); }
     save();
     json(res, 200, { ok: true });
-  }],
+  }, { perm: 'users_block' }],
   ['GET', /^\/api\/admin\/audit$/, async (req, res) => {
     json(res, 200, { items: db.audit.slice(-300).reverse() });
-  }],
+  }, { perm: 'audit' }],
   ['GET', /^\/api\/admin\/admins$/, async (req, res) => {
-    json(res, 200, { items: db.admins.map((a) => ({ id: a.id, login: a.login, owner: !!a.owner, disabled: !!a.disabled, createdAt: a.createdAt, lastLoginAt: a.lastLoginAt || null })) });
-  }],
+    json(res, 200, { perms: PERMS, items: db.admins.map((a) => ({ id: a.id, login: a.login, owner: !!a.owner, disabled: !!a.disabled, perms: a.owner ? Object.keys(PERMS) : (a.perms || []), createdAt: a.createdAt, lastLoginAt: a.lastLoginAt || null })) });
+  }, { owner: true }],
   ['POST', /^\/api\/admin\/admins$/, async (req, res, b, url, m, admin) => {
     if (!admin.owner) return json(res, 403, { error: 'Добавлять администраторов может только владелец.' });
     if (!validLogin(b.login)) return json(res, 400, { error: 'Логин: 3–32 символа, латиница, цифры, точка, дефис.' });
@@ -558,18 +575,34 @@ const adminRoutes = [
     const pe = badPassword(b.password, 10); if (pe) return json(res, 400, { error: pe });
     const pass = await hashPassword(b.password);
     if (adminByLogin(b.login)) return json(res, 409, { error: 'Такой логин уже есть.' });
-    db.admins.push({ id: crypto.randomUUID(), login: b.login, pass, owner: false, createdAt: now() });
-    audit(admin, 'Добавлен администратор', b.login);
+    const perms = cleanPerms(b.perms);
+    db.admins.push({ id: crypto.randomUUID(), login: b.login, pass, owner: false, perms, createdAt: now() });
+    audit(admin, 'Добавлен сотрудник', b.login, perms.map((p) => PERMS[p]).join(', ') || 'без прав');
     json(res, 200, { ok: true });
   }],
   ['POST', /^\/api\/admin\/admins\/([0-9a-f-]{36})$/, async (req, res, b, url, m, admin) => {
-    if (!admin.owner) return json(res, 403, { error: 'Только владелец может менять администраторов.' });
+    if (!admin.owner) return json(res, 403, { error: 'Только владелец может менять сотрудников.' });
     const target = db.admins.find((a) => a.id === m[1]);
     if (!target) return json(res, 404, { error: 'Не найден.' });
-    if (target.owner) return json(res, 400, { error: 'Владельца отключить нельзя.' });
-    target.disabled = !!b.disabled;
-    if (target.disabled) for (const [t, s] of Object.entries(db.adminSessions)) if (s.adminId === target.id) delete db.adminSessions[t];
-    audit(admin, target.disabled ? 'Администратор отключён' : 'Администратор включён', target.login);
+    if (target.owner) return json(res, 400, { error: 'Права и доступ владельца изменить нельзя.' });
+    const dropSessions = () => { for (const [t, s2] of Object.entries(db.adminSessions)) if (s2.adminId === target.id) delete db.adminSessions[t]; };
+    if (typeof b.disabled === 'boolean' && b.disabled !== !!target.disabled) {
+      target.disabled = b.disabled;
+      if (target.disabled) dropSessions();
+      audit(admin, target.disabled ? 'Сотрудник отключён' : 'Сотрудник включён', target.login);
+    }
+    if (b.perms !== undefined) {
+      const perms = cleanPerms(b.perms);
+      target.perms = perms;
+      audit(admin, 'Изменены права сотрудника', target.login, perms.map((p) => PERMS[p]).join(', ') || 'без прав');
+    }
+    if (b.password !== undefined) {
+      const pe = badPassword(b.password, 10); if (pe) return json(res, 400, { error: pe });
+      target.pass = await hashPassword(b.password);
+      dropSessions();
+      audit(admin, 'Владелец сменил пароль сотрудника', target.login);
+    }
+    save();
     json(res, 200, { ok: true });
   }],
   ['POST', /^\/api\/admin\/password$/, async (req, res, b, url, m, admin) => {
@@ -636,6 +669,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname.startsWith('/api/admin/') && !opts.public) {
       admin = currentAdmin(req);
       if (!admin) return json(res, 401, { error: 'Нужно войти в админку.' });
+      if ((opts.owner && !admin.owner) || (opts.perm && !can(admin, opts.perm))) return json(res, 403, { error: 'Недостаточно прав. Обратитесь к владельцу админки.' });
     }
     await handler(req, res, body, url, match, admin);
   } catch (e) {

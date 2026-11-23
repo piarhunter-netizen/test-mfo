@@ -572,3 +572,17 @@ body { background: #eef5f2; }
 .auth__notice { margin: 4px 0 4px; padding: 12px 14px; border-radius: 12px; background: var(--brand-50); color: var(--brand-700); font-size: 14.5px; font-weight: 500; }
 
 .tag--warn { background: var(--warn-bg); color: #8a5a00; }
+
+.perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 16px; margin: 6px 0 16px; }
+.adm-form--wide { max-width: 720px; }
+.staff { background: #fff; border-radius: 16px; box-shadow: var(--shadow); padding: 18px 20px; margin-bottom: 12px; }
+.staff.is-off { opacity: .65; }
+.staff__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.staff__btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.staff__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.chip { font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--brand-50); color: var(--brand-700); }
+.chip--owner { background: #0e1f1a; color: #fff; }
+.chip--none { background: #eef1f0; color: var(--muted); }
+.staff__edit { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+select.input:disabled, textarea.input[readonly] { background: var(--bg); cursor: not-allowed; }
+.adm-table td:nth-child(2) { min-width: 175px; }

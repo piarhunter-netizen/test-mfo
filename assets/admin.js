@@ -9,7 +9,7 @@
   var esc = function (t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var money = function (n) { return Math.round(n).toLocaleString('ru-RU').replace(/\s/g, NB) + NB + '₽'; };
   var dt = function (iso) { return iso ? new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'; };
-  var phone = function (p) { var d = String(p).replace(/\D/g, ''); return '+7' + NB + '(' + d.slice(1, 4) + ')' + NB + d.slice(4, 7) + '-' + d.slice(7, 9) + '-' + d.slice(9, 11); };
+  var phone = function (p) { if (String(p).indexOf('*') !== -1) return esc(p).replace(/ /g, NB); var d = String(p).replace(/\D/g, ''); return '+7' + NB + '(' + d.slice(1, 4) + ')' + NB + d.slice(4, 7) + '-' + d.slice(7, 9) + '-' + d.slice(9, 11); };
   var statusCls = { 'На рассмотрении': 'st--wait', 'Одобрена': 'st--ok', 'Выдана': 'st--ok', 'Погашена': 'st--done', 'Отказ': 'st--bad', 'Отменена': 'st--done' };
 
   function req(path, data) {
@@ -27,7 +27,8 @@
     });
   }
 
-  var me = null;
+  var me = null, permNames = {};
+  var can = function (p) { return me && (me.owner || (me.perms || []).indexOf(p) !== -1); };
   var view = function (html) { root.innerHTML = html; };
   var errBox = function (form, text) { var m = form.querySelector('[data-msg]'); m.textContent = text || ''; m.hidden = !text; };
 
@@ -71,12 +72,15 @@
   }
 
   // ---------- Оболочка ----------
-  var tabs = [['overview', 'Обзор'], ['apps', 'Заявки'], ['users', 'Пользователи'], ['audit', 'Журнал'], ['admins', 'Администраторы'], ['account', 'Мой пароль']];
+  var allTabs = [['overview', 'Обзор', 'apps_view'], ['apps', 'Заявки', 'apps_view'], ['users', 'Пользователи', 'users_view'], ['audit', 'Журнал', 'audit'], ['admins', 'Сотрудники и права', 'owner'], ['account', 'Мой пароль', '']];
+  var tabs = [];
+  var allowedTabs = function () { return allTabs.filter(function (t) { return !t[2] || (t[2] === 'owner' ? me.owner : can(t[2])); }); };
   function shell() {
+    tabs = allowedTabs();
     view('<div class="adm">' +
       '<aside class="adm__side"><div class="adm__brand">Админка</div><nav>' +
       tabs.map(function (t) { return '<a href="#' + t[0] + '" data-tab="' + t[0] + '">' + t[1] + '</a>'; }).join('') +
-      '</nav><div class="adm__me"><span>' + esc(me.login) + (me.owner ? ' · владелец' : '') + '</span><button class="linklike" type="button" data-action="logout">Выйти</button></div></aside>' +
+      '</nav><div class="adm__me"><span>' + esc(me.login) + (me.owner ? ' · владелец' : ' · сотрудник') + '</span><button class="linklike" type="button" data-action="logout">Выйти</button></div></aside>' +
       '<main class="adm__main" data-main></main></div>');
     root.querySelector('[data-action="logout"]').addEventListener('click', function () {
       req('/logout', {}).then(showLogin, showLogin);
@@ -85,8 +89,8 @@
   var main = function () { return root.querySelector('[data-main]'); };
   function route() {
     if (!me) return;
-    var tab = (location.hash || '#overview').slice(1).split('?')[0];
-    if (!tabs.some(function (t) { return t[0] === tab; })) tab = 'overview';
+    var tab = (location.hash || '#' + tabs[0][0]).slice(1).split('?')[0];
+    if (!tabs.some(function (t) { return t[0] === tab; })) tab = tabs[0][0];
     root.querySelectorAll('[data-tab]').forEach(function (a) { a.classList.toggle('is-active', a.getAttribute('data-tab') === tab); });
     ({ overview: overview, apps: apps, users: users, audit: auditLog, admins: admins, account: account })[tab]();
   }
@@ -116,7 +120,7 @@
   function apps() {
     var params = new URLSearchParams((location.hash.split('?')[1]) || '');
     var status = params.get('status') || '', q = params.get('q') || '', page = +params.get('page') || 1;
-    main().innerHTML = '<div class="adm__top"><h1 class="adm__h">Заявки</h1><a class="btn btn--ghost" href="' + API + '/applications.csv" download>Выгрузить в Excel (CSV)</a></div>' +
+    main().innerHTML = '<div class="adm__top"><h1 class="adm__h">Заявки</h1>' + (can('export') ? '<a class="btn btn--ghost" href="' + API + '/applications.csv" download>Выгрузить в Excel (CSV)</a>' : '') + '</div>' +
       '<form class="adm-filter" data-filter><input class="input" name="q" placeholder="Поиск по телефону" value="' + esc(q) + '"><select class="input" name="status"><option value="">Все статусы</option></select><button class="btn btn--primary" type="submit">Найти</button></form>' +
       '<div data-list><p class="muted">Загрузка…</p></div>';
     var f = main().querySelector('[data-filter]');
@@ -136,8 +140,8 @@
         d.items.map(function (a) {
           return '<tr data-id="' + esc(a.id) + '"><td>' + dt(a.createdAt) + '</td><td>' + phone(a.phone) + (a.registered ? ' <span class="tag">ЛК</span>' : '') + (a.verified ? ' <span class="tag">подтверждён</span>' : ' <span class="tag tag--warn" title="Заявка подана без входа в кабинет — номер не подтверждён">не подтверждён</span>') + '</td>' +
             '<td><b>' + money(a.amount) + '</b><br><span class="muted">' + a.term + ' дн.</span></td>' +
-            '<td><select class="input input--sm st ' + (statusCls[a.status] || '') + '" data-status>' + d.statuses.map(function (s) { return '<option' + (s === a.status ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></td>' +
-            '<td><textarea class="input input--sm" data-comment rows="2" maxlength="1000" placeholder="Заметка сотрудника">' + esc(a.comment) + '</textarea></td>' +
+            '<td><select class="input input--sm st ' + (statusCls[a.status] || '') + '" data-status' + (can('apps_edit') ? '' : ' disabled') + '>' + d.statuses.map(function (s) { return '<option' + (s === a.status ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></td>' +
+            '<td><textarea class="input input--sm" data-comment rows="2" maxlength="1000" placeholder="Заметка сотрудника"' + (can('apps_edit') ? '' : ' readonly') + '>' + esc(a.comment) + '</textarea></td>' +
             '<td class="muted small">' + esc((a.utm && a.utm.utm_source) || 'прямой') + (a.utm && a.utm.utm_campaign ? '<br>' + esc(a.utm.utm_campaign) : '') + '</td></tr>';
         }).join('') + '</tbody></table></div>' + pager(d.page, d.pages, status, q);
       list.querySelectorAll('tr[data-id]').forEach(function (tr) {
@@ -173,15 +177,15 @@
       if (!d.items.length) { list.innerHTML = '<p class="muted adm-empty">Пользователей нет.</p>'; return; }
       list.innerHTML = '<p class="muted">Найдено: ' + d.total + '</p><div class="adm-table"><table><thead><tr><th>Телефон</th><th>Регистрация</th><th>Заявок</th><th>Статус</th><th></th></tr></thead><tbody>' +
         d.items.map(function (u) {
-          return '<tr data-id="' + esc(u.id) + '"><td>' + phone(u.phone) + '</td><td>' + dt(u.createdAt) + '</td><td><a href="#apps?q=' + encodeURIComponent(u.phone.replace(/\D/g, '')) + '">' + u.applications + '</a></td>' +
+          return '<tr data-id="' + esc(u.id) + '"><td>' + phone(u.phone) + '</td><td>' + dt(u.createdAt) + '</td><td>' + (u.masked ? u.applications : '<a href="#apps?q=' + encodeURIComponent(u.phone.replace(/\D/g, '')) + '">' + u.applications + '</a>') + '</td>' +
             '<td>' + (u.blocked ? '<span class="st st--bad">Заблокирован</span>' : u.online ? '<span class="st st--ok">В сети</span>' : '<span class="st st--done">Активен</span>') + '</td>' +
-            '<td class="adm-actions"><button class="btn btn--ghost btn--sm" data-block="' + (u.blocked ? '0' : '1') + '">' + (u.blocked ? 'Разблокировать' : 'Заблокировать') + '</button>' +
-            (u.online ? ' <button class="btn btn--ghost btn--sm" data-logout>Завершить сеансы</button>' : '') + '</td></tr>';
+            '<td class="adm-actions">' + (!can('users_block') ? '' : '<button class="btn btn--ghost btn--sm" data-block="' + (u.blocked ? '0' : '1') + '">' + (u.blocked ? 'Разблокировать' : 'Заблокировать') + '</button>' +
+            (u.online ? ' <button class="btn btn--ghost btn--sm" data-logout>Завершить сеансы</button>' : '')) + '</td></tr>';
         }).join('') + '</tbody></table></div>';
       list.querySelectorAll('tr[data-id]').forEach(function (tr) {
         var id = tr.getAttribute('data-id');
         var b = tr.querySelector('[data-block]'), lo = tr.querySelector('[data-logout]');
-        b.addEventListener('click', function () {
+        if (b) b.addEventListener('click', function () {
           var block = b.getAttribute('data-block') === '1';
           if (block && !confirm('Заблокировать пользователя? Он не сможет войти в кабинет.')) return;
           req('/users/' + id, { blocked: block }).then(users).catch(function (err) { alert(err.error || 'Ошибка'); });
@@ -203,29 +207,57 @@
     }).catch(fail);
   }
 
-  // ---------- Администраторы ----------
+  // ---------- Сотрудники и права (только владелец) ----------
+  var permBoxes = function (names, selected, prefix) {
+    return '<div class="perm-grid">' + Object.keys(names).map(function (k) {
+      return '<label class="check"><input type="checkbox" name="' + prefix + k + '" value="' + esc(k) + '"' + (selected.indexOf(k) !== -1 ? ' checked' : '') + '><span>' + esc(names[k]) + '</span></label>';
+    }).join('') + '</div>';
+  };
+  var readPerms = function (root2) { return Array.prototype.map.call(root2.querySelectorAll('.perm-grid input:checked'), function (i) { return i.value; }); };
   function admins() {
-    main().innerHTML = '<h1 class="adm__h">Администраторы</h1><div data-list><p class="muted">Загрузка…</p></div>' +
-      (me.owner ? '<h2 class="adm__h2">Добавить сотрудника</h2><form class="adm-form" data-add novalidate>' +
-        inp('Логин', 'login', 'text', 'off') + inp('Временный пароль (от 10 символов)', 'password', 'password', 'new-password') +
-        '<button class="btn btn--primary" type="submit">Добавить</button><p class="adm-err" data-msg hidden></p></form>' : '');
+    main().innerHTML = '<h1 class="adm__h">Сотрудники и права</h1><p class="muted">Отметьте, что разрешено каждому сотруднику. Изменения действуют сразу.</p><div data-list><p class="muted">Загрузка…</p></div>' +
+      '<h2 class="adm__h2">Добавить сотрудника</h2><form class="adm-form adm-form--wide" data-add novalidate>' +
+      inp('Логин', 'login', 'text', 'off') + inp('Временный пароль (от 10 символов)', 'password', 'password', 'new-password') +
+      '<p class="field__label">Права</p>' + permBoxes(permNames, ['apps_view', 'apps_edit'], 'p_') +
+      '<button class="btn btn--primary" type="submit">Добавить</button><p class="adm-err" data-msg hidden></p></form>';
     req('/admins').then(function (d) {
-      main().querySelector('[data-list]').innerHTML = '<div class="adm-table"><table><thead><tr><th>Логин</th><th>Роль</th><th>Создан</th><th>Последний вход</th><th></th></tr></thead><tbody>' +
-        d.items.map(function (a) {
-          return '<tr data-id="' + esc(a.id) + '"><td>' + esc(a.login) + '</td><td>' + (a.owner ? 'Владелец' : 'Сотрудник') + (a.disabled ? ' · <span class="st st--bad">отключён</span>' : '') + '</td><td>' + dt(a.createdAt) + '</td><td>' + dt(a.lastLoginAt) + '</td>' +
-            '<td>' + (me.owner && !a.owner ? '<button class="btn btn--ghost btn--sm" data-toggle="' + (a.disabled ? '0' : '1') + '">' + (a.disabled ? 'Включить' : 'Отключить') + '</button>' : '') + '</td></tr>';
-        }).join('') + '</tbody></table></div>';
-      main().querySelectorAll('[data-toggle]').forEach(function (b) {
-        b.addEventListener('click', function () {
-          var id = b.closest('tr').getAttribute('data-id');
-          req('/admins/' + id, { disabled: b.getAttribute('data-toggle') === '1' }).then(admins).catch(function (err) { alert(err.error || 'Ошибка'); });
+      var names = d.perms;
+      main().querySelector('[data-list]').innerHTML = d.items.map(function (a) {
+        var chips = a.owner ? '<span class="chip chip--owner">Все права</span>' : (a.perms.length ? a.perms.map(function (p) { return '<span class="chip">' + esc(names[p] || p) + '</span>'; }).join('') : '<span class="chip chip--none">Нет прав</span>');
+        return '<div class="staff' + (a.disabled ? ' is-off' : '') + '" data-id="' + esc(a.id) + '">' +
+          '<div class="staff__head"><div><b>' + esc(a.login) + '</b> <span class="muted">· ' + (a.owner ? 'владелец' : 'сотрудник') + (a.disabled ? ' · <span class="st st--bad">отключён</span>' : '') + '</span>' +
+          '<div class="muted small">Последний вход: ' + dt(a.lastLoginAt) + '</div></div>' +
+          (a.owner ? '' : '<div class="staff__btns"><button class="btn btn--ghost btn--sm" type="button" data-edit>Изменить</button><button class="btn btn--ghost btn--sm" type="button" data-toggle="' + (a.disabled ? '0' : '1') + '">' + (a.disabled ? 'Включить' : 'Отключить') + '</button></div>') +
+          '</div><div class="staff__chips">' + chips + '</div>' +
+          (a.owner ? '' : '<form class="staff__edit" hidden novalidate>' + permBoxes(names, a.perms, 'e_') +
+            '<label class="field"><span class="field__label">Новый пароль сотруднику (необязательно, от 10 символов)</span><input class="input" name="newpass" type="password" autocomplete="new-password"></label>' +
+            '<div class="staff__btns"><button class="btn btn--primary btn--sm" type="submit">Сохранить</button><button class="btn btn--ghost btn--sm" type="button" data-cancel>Отмена</button></div><p class="adm-err" data-msg hidden></p></form>') +
+          '</div>';
+      }).join('');
+      main().querySelectorAll('.staff[data-id]').forEach(function (card) {
+        var id = card.getAttribute('data-id');
+        var edit = card.querySelector('[data-edit]'), form = card.querySelector('.staff__edit'), tog = card.querySelector('[data-toggle]');
+        if (edit) edit.addEventListener('click', function () { form.hidden = !form.hidden; });
+        if (form) {
+          form.querySelector('[data-cancel]').addEventListener('click', function () { form.hidden = true; });
+          form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var data = { perms: readPerms(form) };
+            if (form.newpass.value) data.password = form.newpass.value;
+            req('/admins/' + id, data).then(admins).catch(function (err) { errBox(form, err.error || 'Ошибка'); });
+          });
+        }
+        if (tog) tog.addEventListener('click', function () {
+          var off = tog.getAttribute('data-toggle') === '1';
+          if (off && !confirm('Отключить сотрудника? Он сразу потеряет доступ.')) return;
+          req('/admins/' + id, { disabled: off }).then(admins).catch(function (err) { alert(err.error || 'Ошибка'); });
         });
       });
     }).catch(fail);
     var f = main().querySelector('[data-add]');
-    if (f) f.addEventListener('submit', function (e) {
+    f.addEventListener('submit', function (e) {
       e.preventDefault();
-      req('/admins', { login: f.login.value.trim(), password: f.password.value }).then(admins).catch(function (err) { errBox(f, err.error || 'Ошибка'); });
+      req('/admins', { login: f.login.value.trim(), password: f.password.value, perms: readPerms(f) }).then(admins).catch(function (err) { errBox(f, err.error || 'Ошибка'); });
     });
   }
 
@@ -251,6 +283,7 @@
       if (s.needSetup) return token ? showSetup(token) : view(authCard('Админка не настроена', 'Откройте одноразовую ссылку создания администратора.', '', 'Обновить'));
       if (!s.admin) return showLogin();
       me = s.admin;
+      permNames = s.permNames || {};
       if (token) history.replaceState(null, '', location.pathname);
       shell();
       route();
