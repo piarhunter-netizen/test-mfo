@@ -1,0 +1,26 @@
+# systemd-служба сайта: /etc/systemd/system/mfo-site.service
+[Unit]
+Description=MFO site (static + API)
+After=network.target
+
+[Service]
+User=mfo
+Group=mfo
+WorkingDirectory=/opt/mfo-site
+Environment=NODE_ENV=production
+Environment=PORT=8090
+Environment=HOST=127.0.0.1
+Environment=DATA_DIR=/var/lib/mfo-site
+# ВРЕМЕННО: без СМС-шлюза код показывается на странице. Уберите после подключения SMS_API_URL.
+Environment=SMS_DEMO=1
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/mfo-site
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

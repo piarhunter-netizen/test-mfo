@@ -24,7 +24,11 @@ const crypto = require('crypto');
 
 const cfg = require('./site.config');
 const PORT = +process.env.PORT || 8080;
+const HOST = process.env.HOST || '0.0.0.0';
 const PROD = process.env.NODE_ENV === 'production';
+// SMS_DEMO=1 — временный тестовый режим без СМС-шлюза: код показывается на странице.
+// Только для проверки! Любой сможет зарегистрировать чужой номер.
+const SMS_DEMO = !PROD || process.env.SMS_DEMO === '1';
 const ROOT = path.join(__dirname, 'dist');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
@@ -92,7 +96,7 @@ async function sendSms(phone, text) {
     if (!r.ok) throw new Error('sms gateway ' + r.status);
     return { sent: true };
   }
-  if (PROD) throw new Error('SMS gateway is not configured');
+  if (!SMS_DEMO) throw new Error('SMS gateway is not configured');
   console.log(`[СМС → ${phone}] ${text}`);
   return { sent: false };
 }
@@ -278,7 +282,7 @@ http.createServer(async (req, res) => {
     console.error(e);
     if (!res.headersSent) json(res, e.message === 'too large' ? 413 : 500, { error: 'Ошибка сервера. Попробуйте позже.' });
   }
-}).listen(PORT, () => {
-  console.log(`Сайт и API: http://localhost:${PORT}`);
-  if (!PROD) console.log('Режим разработки: коды из СМС выводятся в консоль и на страницу.');
+}).listen(PORT, HOST, () => {
+  console.log(`Сайт и API: http://${HOST}:${PORT}`);
+  if (SMS_DEMO && !process.env.SMS_API_URL) console.log('Тестовый режим: коды из СМС выводятся в консоль и на страницу.');
 });
