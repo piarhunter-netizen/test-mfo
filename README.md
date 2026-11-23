@@ -13,6 +13,12 @@ node serve.js      # открыть http://localhost:8080
 
 Нужен Node.js 18 или новее. Содержимое `dist/` можно загрузить на любой хостинг. На GitHub Pages сайт публикуется сам через `.github/workflows/pages.yml`.
 
+## Где работает
+
+- **https://vietrp.com** — VPS 147.78.66.109 (Ubuntu 24.04): служба `mfo-site` (systemd, порт 127.0.0.1:8090), nginx с HTTPS от Let's Encrypt (продлевается автоматически), данные в `/var/lib/mfo-site/db.json`.
+- Обновить сайт на сервере: выложить код в `/opt/mfo-site`, выполнить `node build.js` и `systemctl restart mfo-site`.
+- GitHub Pages — только витрина без регистрации (формы в демо-режиме).
+
 ## Страницы
 
 | Адрес | Что это |
