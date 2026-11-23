@@ -108,7 +108,7 @@ const header = (page) => `
       </ul>
       <div class="nav__extra">
         <a class="nav__phone" href="tel:${K.phoneHref}">${icon('phone')}${K.phone}</a>
-        <a class="btn btn--primary" href="/lk/login/" rel="nofollow">${icon('user')}Войти</a>
+        <a class="btn btn--primary" href="/lk/login/" rel="nofollow" data-lk-btn>${icon('user')}<span data-lk-label>Войти</span></a>
       </div>
     </nav>
   </div>

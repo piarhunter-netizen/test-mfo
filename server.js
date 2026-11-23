@@ -200,8 +200,11 @@ const parseCookies = (req) => {
   return out;
 };
 const isHttps = (req) => req.socket.encrypted || req.headers['x-forwarded-proto'] === 'https';
-const cookie = (req, name, value, { maxAge, path: p = '/', sameSite = 'Lax' }) =>
-  `${name}=${value}; Path=${p}; HttpOnly; SameSite=${sameSite}; Max-Age=${maxAge}${isHttps(req) ? '; Secure' : ''}`;
+const cookie = (req, name, value, { maxAge, path: p = '/', sameSite = 'Lax', httpOnly = true }) =>
+  `${name}=${value}; Path=${p}${httpOnly ? '; HttpOnly' : ''}; SameSite=${sameSite}; Max-Age=${maxAge}${isHttps(req) ? '; Secure' : ''}`;
+// lk_in=1 — только признак «вошёл» для интерфейса (без секрета); сама сессия — в HttpOnly-cookie sid
+const markIn = (req, res) => addCookie(res, cookie(req, 'lk_in', '1', { maxAge: SESSION_DAYS * 86400, httpOnly: false }));
+const markOut = (req, res) => addCookie(res, cookie(req, 'lk_in', '', { maxAge: 0, httpOnly: false }));
 const addCookie = (res, c) => {
   const prev = res.getHeader('Set-Cookie');
   res.setHeader('Set-Cookie', prev ? [].concat(prev, c) : c);
@@ -211,6 +214,7 @@ const startSession = (req, res, user) => {
   db.sessions[sha(token)] = { userId: user.id, exp: Date.now() + SESSION_DAYS * 864e5 };
   save();
   addCookie(res, cookie(req, 'sid', token, { maxAge: SESSION_DAYS * 86400 }));
+  markIn(req, res);
 };
 const currentUser = (req) => {
   const token = parseCookies(req).sid;
@@ -306,7 +310,8 @@ const routes = {
     const token = parseCookies(req).sid;
     if (token) { delete db.sessions[sha(token)]; save(); }
     addCookie(res, cookie(req, 'sid', '', { maxAge: 0 }));
-    json(res, 200, { ok: true, redirect: '/lk/login/' });
+    markOut(req, res);
+    json(res, 200, { ok: true, redirect: '/lk/login/?out=1' });
   },
   'POST /api/reset/start': async (req, res, b) => {
     const phone = normPhone(b.phone);
@@ -332,7 +337,7 @@ const routes = {
   },
   'GET /api/me': async (req, res) => {
     const user = currentUser(req);
-    if (!user) return json(res, 401, { error: 'Нужно войти.' });
+    if (!user) { markOut(req, res); return json(res, 401, { error: 'Нужно войти.' }); }
     const apps = db.applications.filter((a) => a.phone === user.phone)
       .map(({ id, amount, term, createdAt, status }) => ({ id, amount, term, createdAt, status }));
     json(res, 200, { phone: user.phone, createdAt: user.createdAt, applications: apps.reverse() });

@@ -563,3 +563,10 @@ body { background: #eef5f2; }
   .promo__btn { display: none; }
   .promo__art { width: 70%; right: -40px; bottom: -30px; opacity: .55; }
 }
+
+.btn.is-in { background: #fff; color: var(--brand-700); border-color: var(--brand-100); box-shadow: none; }
+.btn.is-in:hover { background: var(--brand-50); color: var(--brand-700); }
+.btn.is-in .ico { color: var(--brand); }
+.cab__who { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--ink-2); margin: 0; }
+.cab__dot { width: 10px; height: 10px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 4px #dcfce7; flex: none; }
+.auth__notice { margin: 4px 0 4px; padding: 12px 14px; border-radius: 12px; background: var(--brand-50); color: var(--brand-700); font-size: 14.5px; font-weight: 500; }

@@ -259,6 +259,7 @@ const lkLogin = {
 <section class="auth">
   <div class="auth__card">
     <h1 class="auth__t">Личный кабинет</h1>
+    <div class="auth__notice" data-auth-notice hidden></div>
     <div class="auth__tabs" role="tablist">
       <button type="button" role="tab" data-auth-mode="login" aria-selected="true">Вход</button>
       <button type="button" role="tab" data-auth-mode="register" aria-selected="false">Регистрация</button>
@@ -326,9 +327,9 @@ const lkCabinet = {
   <div class="cab__head">
     <div>
       <h1 class="cab__t">Личный кабинет</h1>
-      <p class="muted" data-cab-user>Загрузка…</p>
+      <p class="cab__who" data-cab-user>Загрузка…</p>
     </div>
-    <button class="btn btn--ghost" type="button" data-logout>Выйти</button>
+    <button class="btn btn--ghost" type="button" data-logout>Выйти из кабинета</button>
   </div>
   <div class="cab__grid">
     <section class="cab__card">

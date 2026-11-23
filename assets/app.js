@@ -140,6 +140,33 @@
     });
   });
 
+  // ---------- Состояние входа: шапка, страница входа, подстановка телефона ----------
+  var loggedIn = /(?:^|;\s*)lk_in=1/.test(document.cookie);
+  var setHeader = function (me) {
+    document.querySelectorAll('[data-lk-btn]').forEach(function (a) {
+      a.href = BASE + '/lk/';
+      a.classList.add('is-in');
+      a.querySelector('[data-lk-label]').textContent = 'Мой кабинет';
+      a.title = 'Вы вошли: ' + me.phone;
+    });
+  };
+  var loginPage = document.querySelector('form[data-auth="login"]');
+  var notice = document.querySelector('[data-auth-notice]');
+  if (notice && /[?&]out=1/.test(location.search)) {
+    notice.textContent = 'Вы вышли из личного кабинета.';
+    notice.hidden = false;
+    history.replaceState(null, '', location.pathname + location.hash);
+  }
+  if (API && loggedIn) {
+    postJson(API + '/me').then(function (me) {
+      setHeader(me);
+      // уже вошёл, а открыл страницу входа — сразу в кабинет
+      if (loginPage) { location.replace(BASE + '/lk/'); return; }
+      var loan = document.getElementById('loan');
+      if (loan && loan.phone && !loan.phone.value) { loan.phone.value = me.phone.slice(2); loan.phone.dispatchEvent(new Event('input')); }
+    }).catch(function () { /* сессия истекла — шапка остаётся «Войти» */ });
+  }
+
   // ---------- Личный кабинет ----------
   var authForms = {};
   document.querySelectorAll('form[data-auth]').forEach(function (f) { authForms[f.getAttribute('data-auth')] = f; });
@@ -297,19 +324,20 @@
     } else {
       postJson(API + '/me')
         .then(function (me) {
-          user.textContent = fmtPhone(me.phone) + ' · с ' + new Date(me.createdAt).toLocaleDateString('ru-RU');
+          user.innerHTML = '<span class="cab__dot"></span>Вы вошли как <b>' + fmtPhone(me.phone) + '</b> · в кабинете с ' + new Date(me.createdAt).toLocaleDateString('ru-RU');
           appsBox.innerHTML = me.applications.length
             ? '<ul class="apps">' + me.applications.map(function (a) {
               return '<li><div><strong>' + fmt(a.amount) + ' на ' + a.term + NB + plural(a.term, days) + '</strong><span>' + new Date(a.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) + '</span></div><span class="apps__st">' + esc(a.status) + '</span></li>';
             }).join('') + '</ul>'
             : '<p class="muted">Заявок пока нет.</p>';
         })
-        .catch(function () { location.href = BASE + '/lk/login/'; });
+        .catch(function () { location.replace(BASE + '/lk/login/'); });
     }
     var out = cab.querySelector('[data-logout]');
     out.addEventListener('click', function () {
       if (!API) { location.href = BASE + '/lk/login/'; return; }
-      postJson(API + '/logout', {}).then(function () { location.href = BASE + '/lk/login/'; });
+      out.disabled = true;
+      postJson(API + '/logout', {}).then(function () { location.href = BASE + '/lk/login/?out=1'; }, function () { location.href = BASE + '/lk/login/'; });
     });
   }
 
