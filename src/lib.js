@@ -1,6 +1,11 @@
 // Общие утилиты и расчёты, которые используются и при сборке, и в шаблонах
 const cfg = require('../site.config');
 
+// Адрес можно переопределить при сборке: SITE_URL=https://user.github.io/repo node build.js
+cfg.url = (process.env.SITE_URL || cfg.url).replace(/\/+$/, '');
+// Подпапка, если сайт открывается не из корня домена (например, GitHub Pages: /repo)
+const base = new URL(cfg.url).pathname.replace(/\/+$/, '');
+
 const NBSP = ' ';
 
 const esc = (s = '') =>
@@ -45,4 +50,4 @@ const ruDate = (iso) => {
   return `${d}.${m}.${y}`;
 };
 
-module.exports = { cfg, NBSP, esc, num, money, pct, psk, pskText, yearRate, calc, absUrl, ruDate };
+module.exports = { cfg, base, NBSP, esc, num, money, pct, psk, pskText, yearRate, calc, absUrl, ruDate };

@@ -5,7 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const zlib = require('zlib');
 
-const { cfg, esc, absUrl, ruDate } = require('./src/lib');
+const { cfg, base, esc, absUrl, ruDate } = require('./src/lib');
 const { render, orgId } = require('./src/layout');
 const { calculator, articleCards, cta } = require('./src/components');
 const mainPages = require('./src/pages');
@@ -194,7 +194,8 @@ write('assets/icon-512.png', png(512, 512, (x, y) => logoPixel(x / 12.8, y / 12.
 
 // ---------- Страницы ----------
 for (const p of pages) {
-  const html = render(p, assets);
+  // Корневые ссылки /path → /base/path, чтобы сайт работал и из подпапки
+  const html = render(p, assets).replace(/(href|src|action)="\/(?!\/)/g, `$1="${base}/`);
   // Цитаты в «ёлочках» — это примеры недопустимых обещаний в предупреждениях, их не проверяем
   const text = html.replace(/<[^>]+>/g, ' ').replace(/«[^»]*»/g, '');
   for (const re of banned) if (re.test(text)) problems.push(`${p.path}: недопустимая формулировка ${re}`);
@@ -234,13 +235,13 @@ write(
     name: `${cfg.brand} — ${cfg.slogan}`,
     short_name: cfg.brand,
     lang: 'ru',
-    start_url: '/',
+    start_url: base + '/',
     display: 'browser',
     background_color: '#f5f8f7',
     theme_color: '#0b6b58',
     icons: [
-      { src: '/assets/favicon.svg', type: 'image/svg+xml', sizes: 'any' },
-      { src: '/assets/icon-512.png', type: 'image/png', sizes: '512x512' },
+      { src: base + '/assets/favicon.svg', type: 'image/svg+xml', sizes: 'any' },
+      { src: base + '/assets/icon-512.png', type: 'image/png', sizes: '512x512' },
     ],
   }, null, 2)
 );

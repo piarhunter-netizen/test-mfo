@@ -19,7 +19,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - id: pages
+        uses: actions/configure-pages@v5
+      # Адрес Pages (https://<user>.github.io/<repo>) — для ссылок, canonical и sitemap.
+      # Для своего домена укажите url в site.config.js и удалите SITE_URL ниже.
       - run: node build.js
+        env:
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
