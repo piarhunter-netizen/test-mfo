@@ -137,6 +137,23 @@ code { background: var(--brand-50); padding: 1px 6px; border-radius: 6px; font-s
 .calc__total { color: var(--brand-700); font-size: 18px !important; }
 .calc__note { font-size: 12.5px; color: var(--muted); margin: 14px 0 0; line-height: 1.5; }
 
+/* Калькулятор с заявкой */
+.calc__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 4px 0 18px; }
+.calc__pair div { background: var(--brand-50); border-radius: 14px; padding: 12px 16px; display: flex; flex-direction: column; }
+.calc__pair span { font-size: 13.5px; color: var(--muted); }
+.calc__pair strong { font-size: 21px; letter-spacing: -.01em; color: var(--brand-700); }
+.calc__step2 { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 4px; }
+.calc__step2 .consents { margin-bottom: 12px; }
+.hero--one .hero__in { grid-template-areas: 'text calc'; align-items: start; }
+.hero--one .hero__text { padding-top: 48px; align-self: start; }
+.hero__in > *, .landing > *, .split > * { min-width: 0; }
+.check span { min-width: 0; overflow-wrap: anywhere; }
+.hero--one .hero__points { margin-top: 24px; }
+.about__reg { display: flex; gap: 12px; align-items: center; margin: 24px 0 0; padding: 16px 20px; background: #fff; border-radius: 16px; box-shadow: var(--shadow); font-size: 15px; }
+.about__reg .ico { width: 28px; height: 28px; color: var(--brand); }
+.docs--grid { grid-template-columns: 1fr 1fr; }
+.features:has(> :nth-child(4):last-child) { grid-template-columns: repeat(4, 1fr); }
+
 /* Полоса доверия */
 .band { background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .trust { list-style: none; margin: 0; padding: 22px 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
@@ -337,8 +354,11 @@ code { background: var(--brand-50); padding: 1px 6px; border-radius: 6px; font-s
   .nav__phone { display: inline-flex; justify-content: center; padding: 8px; }
 }
 @media (max-width: 960px) {
-  .hero__in { grid-template-columns: 1fr; grid-template-areas: 'text' 'calc' 'points'; row-gap: 24px; }
+  .hero__in, .hero--one .hero__in { grid-template-columns: 1fr; grid-template-areas: 'text' 'calc' 'points'; row-gap: 24px; }
+  .features:has(> :nth-child(4):last-child) { grid-template-columns: repeat(2, 1fr); }
   .hero__t { max-width: none; }
+  .hero--one .hero__text { padding-top: 0; }
+  .hero--one .hero__points { display: none; }
   .landing, .split, .article-layout { grid-template-columns: 1fr; gap: 32px; }
   .trust { grid-template-columns: 1fr 1fr; }
   .landing__calc, .article__aside { position: static; }
@@ -361,7 +381,7 @@ code { background: var(--brand-50); padding: 1px 6px; border-radius: 6px; font-s
   .step__t { margin: 0 0 2px; font-size: 16.5px; }
   .cta-inline { display: none; }
   .cookie { bottom: 12px; }
-  .features, .cards, .steps, .contact-cards, .links-grid, .sitemap { grid-template-columns: 1fr; }
+  .features, .cards, .steps, .contact-cards, .links-grid, .sitemap, .docs--grid, .features:has(> :nth-child(4):last-child) { grid-template-columns: 1fr; }
   .psk { grid-template-columns: 1fr; }
   .psk__item + .psk__item { border-left: 0; border-top: 1.5px solid var(--brand-100); }
   .calc { padding: 22px 18px; border-radius: 22px; }

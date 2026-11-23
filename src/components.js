@@ -93,6 +93,62 @@ const trustStrip = () => `
 
 const ctaButton = (text = 'Получить деньги') => `<p class="center cta-inline"><button class="btn btn--primary btn--lg" type="button" data-open-apply>${text}</button></p>`;
 
+// Поля заявки: телефон и согласия. Каждое согласие — отдельная галочка, ни одна не отмечена заранее.
+const phoneField = () => `
+    <label class="field">
+      <span class="field__label">Мобильный телефон</span>
+      <input class="input" type="tel" name="phone" inputmode="tel" autocomplete="tel" placeholder="+7 (900) 000-00-00" required>
+      <span class="field__err" data-err="phone">Введите номер полностью</span>
+    </label>`;
+
+const consentFields = () => `
+    <fieldset class="consents">
+      <legend class="consents__t">Чтобы продолжить, подтвердите:</legend>
+      <label class="check"><input type="checkbox" name="docs" required><span>ознакомление с <a href="/dokumenty/" target="_blank">условиями и правилами</a> выдачи займов</span></label>
+      <label class="check"><input type="checkbox" name="pd" required><span><a href="/soglasie-na-obrabotku-pd/" target="_blank">согласие на обработку персональных данных</a></span></label>
+      <label class="check"><input type="checkbox" name="bki" required><span>согласие на запрос кредитной истории в БКИ</span></label>
+      <label class="check"><input type="checkbox" name="asp" required><span><a href="/dokumenty/#asp" target="_blank">соглашение о простой электронной подписи</a></span></label>
+      <label class="check check--optional"><input type="checkbox" name="ads"><span>хочу получать новости и предложения — необязательно</span></label>
+    </fieldset>
+    <p class="field__err" data-err="consents">Отметьте обязательные согласия</p>`;
+
+// Калькулятор с заявкой в одной карточке (главная): шаг 1 — сумма и срок, шаг 2 — телефон и согласия
+const applyCard = (id = 'loan') => {
+  const ex = calc(L.defaultAmount, L.defaultTerm);
+  return `
+<form class="calc calc--apply" id="${id}" data-rate="${L.dailyRate}" data-apply-form novalidate aria-labelledby="${id}-title">
+  <h2 class="calc__title" id="${id}-title">Получите деньги онлайн</h2>
+  <div class="calc__field">
+    <div class="calc__row">
+      <label for="${id}-amount">Сумма</label>
+      <output class="calc__out" data-out="amount" for="${id}-amount">${money(L.defaultAmount)}</output>
+    </div>
+    <input class="range" type="range" id="${id}-amount" name="amount" data-role="amount" min="${L.minAmount}" max="${L.maxAmount}" step="${L.step}" value="${L.defaultAmount}">
+    <div class="calc__limits"><span>${money(L.minAmount)}</span><span>${money(L.maxAmount)}</span></div>
+  </div>
+  <div class="calc__field">
+    <div class="calc__row">
+      <label for="${id}-term">Срок</label>
+      <output class="calc__out" data-out="term" for="${id}-term">${L.defaultTerm}${NBSP}дн.</output>
+    </div>
+    <input class="range" type="range" id="${id}-term" name="term" data-role="term" min="${L.minTerm}" max="${L.maxTerm}" step="1" value="${L.defaultTerm}">
+    <div class="calc__limits"><span>${L.minTerm}${NBSP}дней</span><span>${L.maxTerm}${NBSP}дней</span></div>
+  </div>
+  <div class="calc__pair">
+    <div><span>Возвращаете</span><strong data-out="total">${money(ex.total)}</strong></div>
+    <div><span>Дата возврата</span><strong data-out="dateonly">через ${L.defaultTerm}${NBSP}дн.</strong></div>
+  </div>
+  <div class="calc__step2" data-step2 hidden>
+    ${phoneField()}
+    ${consentFields()}
+    <button class="btn btn--primary btn--lg btn--block" type="submit">Продолжить</button>
+  </div>
+  <button class="btn btn--primary btn--lg btn--block" type="button" data-next>Получить деньги</button>
+  <p class="calc__note">При возврате в срок. Ставка ${pct(L.dailyRate)} в день, ПСК ${pskText()}. Решение принимается индивидуально.</p>
+  <div class="modal__done" data-apply-done hidden></div>
+</form>`;
+};
+
 const faqBlock = (items, { title = 'Вопросы и ответы', id = 'faq', heading = 'h2' } = {}) => `
 <section class="section" id="${id}" aria-labelledby="${id}-title">
   <${heading} class="section__title" id="${id}-title">${title}</${heading}>
@@ -199,5 +255,5 @@ const articleCards = (articles) => `
 
 module.exports = {
   icon, pskBox, calculator, faqBlock, faqSchema, steps, defaultSteps, features,
-  conditionsTable, requirements, cta, riskNote, articleCards, keyNumbers, trustStrip, ctaButton,
+  conditionsTable, requirements, cta, riskNote, articleCards, keyNumbers, trustStrip, ctaButton, phoneField, consentFields, applyCard,
 };

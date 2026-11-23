@@ -39,11 +39,14 @@
       var a = +amount.value, t = +term.value;
       var interest = Math.round(a * rate * t);
       var date = new Date(); date.setDate(date.getDate() + t);
-      out('amount').textContent = fmt(a);
-      out('term').textContent = t + NB + plural(t, days);
-      out('interest').textContent = fmt(interest);
-      out('total').textContent = fmt(a + interest);
-      out('date').textContent = 'до ' + date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+      var dateText = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+      var set = function (name, text) { var el = out(name); if (el) el.textContent = text; };
+      set('amount', fmt(a));
+      set('term', t + NB + plural(t, days));
+      set('interest', fmt(interest));
+      set('total', fmt(a + interest));
+      set('date', 'до ' + dateText);
+      set('dateonly', dateText);
       amount.setAttribute('aria-valuetext', a + ' рублей');
       term.setAttribute('aria-valuetext', t + ' ' + plural(t, days));
       fill(amount); fill(term);
@@ -82,6 +85,13 @@
   var dialog = document.getElementById('apply');
   var form = dialog && dialog.querySelector('[data-apply-form]');
   function openApply(e) {
+    // На главной заявка встроена в калькулятор — прокручиваем к нему вместо модального окна
+    var inline = document.getElementById('loan');
+    if (inline && inline.hasAttribute('data-apply-form')) {
+      inline.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      var nx = inline.querySelector('[data-next]'); if (nx && !nx.hidden) nx.click();
+      return;
+    }
     if (!dialog) return;
     var calc = e && e.currentTarget.closest('.calc');
     if (calc) {
@@ -103,8 +113,17 @@
     dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); });
   }
 
-  // Маска телефона +7 (XXX) XXX-XX-XX
-  if (form) {
+  // Маска телефона и отправка — для каждой формы заявки
+  document.querySelectorAll('[data-apply-form]').forEach(function (form) {
+    var next = form.querySelector('[data-next]');
+    var step2 = form.querySelector('[data-step2]');
+    if (next && step2) {
+      next.addEventListener('click', function () {
+        step2.hidden = false; next.hidden = true;
+        goal('apply_open', { amount: +form.amount.value, term: +form.term.value });
+        form.phone.focus();
+      });
+    }
     var phone = form.phone;
     phone.addEventListener('input', function () {
       var d = phone.value.replace(/\D/g, '').replace(/^[78]/, '').slice(0, 10);
@@ -153,7 +172,7 @@
         .catch(function () { show('Не удалось отправить заявку. Попробуйте ещё раз или позвоните нам.'); })
         .then(function () { btn.disabled = false; btn.textContent = 'Продолжить'; });
     });
-  }
+  });
 
   // ---------- Cookie и аналитика ----------
   var KEY = 'cookie-consent';

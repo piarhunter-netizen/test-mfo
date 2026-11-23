@@ -4,7 +4,7 @@ const path = require('path');
 const { cfg, NBSP, esc, money, pct, pskText, yearRate, calc, absUrl, ruDate } = require('./lib');
 const {
   icon, pskBox, calculator, faqBlock, faqSchema, steps, defaultSteps, features,
-  conditionsTable, requirements, cta, riskNote, articleCards, keyNumbers, trustStrip, ctaButton,
+  conditionsTable, requirements, cta, riskNote, articleCards, keyNumbers, trustStrip, ctaButton, applyCard,
 } = require('./components');
 const { orgId } = require('./layout');
 const articles = require('./blog');
@@ -52,58 +52,65 @@ const home = {
     faqSchema(homeFaq),
   ],
   body: `
-<section class="hero">
+<section class="hero hero--one">
   <div class="container hero__in">
     <div class="hero__text">
       <h1 class="hero__t">Займ до${NBSP}${maxM} на${NBSP}карту</h1>
-      <p class="hero__lead">Решение обычно за несколько минут. Сколько вернуть и полную стоимость вы видите до подписания договора.</p>
+      <p class="hero__lead">Оформление онлайн за 10 минут. Сумму к возврату и полную стоимость вы видите до подписания договора.</p>
       ${pskBox()}
+      <ul class="hero__points">
+        <li>${icon('check')}Без справок и поручителей</li>
+        <li>${icon('check')}Деньги на карту или по СБП</li>
+        <li>${icon('check')}Досрочно — без комиссий</li>
+      </ul>
     </div>
-    <div class="hero__calc">${calculator({ title: 'Рассчитайте займ' })}</div>
-    <ul class="hero__points">
-      <li>${icon('check')}Без справок и поручителей</li>
-      <li>${icon('check')}На карту или по СБП</li>
-      <li>${icon('check')}Заявки онлайн круглосуточно</li>
-    </ul>
+    <div class="hero__calc">${applyCard('loan')}</div>
   </div>
 </section>
 
-<section class="band">
-  <div class="container">${trustStrip()}</div>
-</section>
-
 <div class="container">
-  ${steps(defaultSteps, 'Как получить займ')}
-  ${ctaButton()}
-
-  <section class="section split split--top" aria-labelledby="cond-title">
-    <div>
-      <h2 class="section__title" id="cond-title">Условия</h2>
-      ${keyNumbers()}
-    </div>
-    <div>
-      <h2 class="section__title">Кому выдаём</h2>
-      ${requirements()}
-    </div>
+  <section class="section" id="how" aria-labelledby="how-title">
+    <h2 class="section__title" id="how-title">Как оформить займ?</h2>
+    <ol class="steps">
+      ${[
+        ['Выберите сумму и срок', 'Передвиньте ползунки — сразу увидите, сколько вернуть.'],
+        ['Заполните анкету', 'Паспорт, телефон и доход. Около 5 минут.'],
+        ['Подпишите договор', 'Кодом из СМС. Условия и ПСК — до подписи.'],
+        ['Получите деньги', 'На карту или по СБП на счёт на ваше имя.'],
+      ].map(([t, d], i) => `<li class="step"><span class="step__n">${i + 1}</span><h3 class="step__t">${t}</h3><p>${d}</p></li>`).join('')}
+    </ol>
   </section>
 
-  ${riskNote()}
-
-  ${faqBlock(homeFaq)}
-  <p class="center"><a class="link-more" href="/voprosy-i-otvety/">Все вопросы и ответы ${icon('arrow')}</a></p>
-
-  <section class="section" aria-labelledby="blog-title">
-    <h2 class="section__title" id="blog-title">Полезно знать</h2>
-    ${articleCards(articles.slice(0, 3))}
+  <section class="section" id="about" aria-labelledby="about-title">
+    <h2 class="section__title" id="about-title">Надёжный партнёр в финансовых решениях</h2>
+    ${features([
+      { i: 'percent', t: 'Прозрачные условия', d: `Ставка ${pct(L.dailyRate)} в день и ПСК ${pskText()}. Никаких скрытых платежей.` },
+      { i: 'bolt', t: 'Быстрое решение', d: 'Решение обычно за несколько минут, деньги — сразу после подписания.' },
+      { i: 'user', t: 'Рассматриваем каждого', d: 'Даже если в кредитной истории были просрочки.' },
+      { i: 'lock', t: 'Защита данных', d: 'Шифрование и хранение данных на серверах в России.' },
+    ])}
+    <p class="about__reg">${icon('scale')}<span>${esc(C.shortName)} — в государственном реестре МФО Банка России, № ${C.cbrRegNumber}. Член ${esc(C.sroName)}.</span></p>
   </section>
 
-  <section class="section prose prose--seo" aria-labelledby="seo-title">
-    <h2 id="seo-title">Онлайн-займы в ${esc(cfg.brand)}</h2>
-    <p>${esc(C.shortName)} — микрокредитная компания из государственного реестра МФО Банка России. Выдаём займы от ${money(L.minAmount)} до ${maxM} на ${L.minTerm}–${L.maxTerm} дней полностью онлайн: заявка, договор и деньги — без визита в офис.</p>
-    <p>Ставка — ${pct(L.dailyRate)} в день. Например, ${money(L.defaultAmount)} на ${L.maxTerm} дней обойдутся в ${money(ex.interest)}, вернуть нужно ${money(ex.total)}; при досрочном возврате проценты пересчитаются за фактические дни. Мы не обещаем «одобрение всем»: каждая заявка проходит проверку платёжеспособности, кредитной истории и самозапрета — это защищает и заёмщика, и компанию.</p>
+  ${faqBlock(homeFaq, { title: 'Часто задаваемые вопросы' })}
+
+  <section class="section" id="docs" aria-labelledby="docs-title">
+    <h2 class="section__title" id="docs-title">Документы</h2>
+    <ul class="docs docs--grid">
+      <li class="doc">${icon('doc', 'doc__ico')}<a href="/usloviya/">Информация об условиях предоставления займа</a></li>
+      <li class="doc">${icon('doc', 'doc__ico')}<a href="/dokumenty/">Правила предоставления займов</a></li>
+      <li class="doc">${icon('doc', 'doc__ico')}<a href="/politika-konfidencialnosti/">Политика обработки персональных данных</a></li>
+      <li class="doc">${icon('doc', 'doc__ico')}<a href="/dokumenty/">Все документы компании</a></li>
+    </ul>
   </section>
 
-  ${cta()}
+  <section class="section" id="contacts" aria-labelledby="contacts-title">
+    <h2 class="section__title" id="contacts-title">Контакты</h2>
+    <ul class="contact-cards">
+      <li>${icon('phone')}<span>Горячая линия</span><a href="tel:${K.phoneHref}">${K.phone}</a><small>${esc(K.hours)}. Звонок бесплатный.</small></li>
+      <li>${icon('chat')}<span>Электронная почта</span><a href="mailto:${K.email}">${K.email}</a><small>Обращения: ${K.complaintsEmail}</small></li>
+    </ul>
+  </section>
 </div>`,
 };
 

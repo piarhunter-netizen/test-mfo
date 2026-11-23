@@ -1,17 +1,17 @@
 // Каркас страницы: <head>, шапка, подвал, модальное окно заявки, cookie-баннер
 const { cfg, esc, pct, pskText, yearRate, money, absUrl, ruDate } = require('./lib');
-const { icon } = require('./components');
+const { icon, phoneField, consentFields } = require('./components');
 
 const C = cfg.company;
 const K = cfg.contacts;
 const L = cfg.loan;
 
 const nav = [
-  { name: 'Условия', path: '/usloviya/' },
-  { name: 'Как получить', path: '/kak-poluchit/' },
-  { name: 'Как погасить', path: '/kak-pogasit/' },
-  { name: 'Вопросы', path: '/voprosy-i-otvety/' },
-  { name: 'О компании', path: '/o-kompanii/' },
+  { name: 'Получить займ', path: '/#loan' },
+  { name: 'Как оформить', path: '/#how' },
+  { name: 'О сервисе', path: '/#about' },
+  { name: 'Вопрос-ответ', path: '/#faq' },
+  { name: 'Контакты', path: '/#contacts' },
 ];
 
 const footerCols = [
@@ -156,8 +156,8 @@ const header = (page) => `
       </ul>
       <div class="nav__extra">
         <a class="nav__phone" href="tel:${K.phoneHref}">${icon('phone')}${K.phone}</a>
-        ${cfg.lkUrl ? `<a class="btn btn--ghost" href="${cfg.lkUrl}" rel="nofollow">Личный кабинет</a>` : ''}
-        <button class="btn btn--primary" type="button" data-open-apply>Получить деньги</button>
+        ${cfg.lkUrl ? `<a class="btn btn--ghost" href="${cfg.lkUrl}" rel="nofollow">Войти</a>` : ''}
+        <a class="btn btn--primary" href="/#loan">Получить деньги</a>
       </div>
     </nav>
   </div>
@@ -204,20 +204,8 @@ const applyModal = () => `
     <p class="modal__sum" data-apply-sum>${money(L.defaultAmount)} на ${L.defaultTerm} дн.</p>
     <input type="hidden" name="amount" value="${L.defaultAmount}">
     <input type="hidden" name="term" value="${L.defaultTerm}">
-    <label class="field">
-      <span class="field__label">Мобильный телефон</span>
-      <input class="input" type="tel" name="phone" inputmode="tel" autocomplete="tel" placeholder="+7 (900) 000-00-00" required>
-      <span class="field__err" data-err="phone">Введите номер полностью</span>
-    </label>
-    <fieldset class="consents">
-      <legend class="consents__t">Чтобы продолжить, подтвердите:</legend>
-      <label class="check"><input type="checkbox" name="docs" required><span>ознакомление с <a href="/dokumenty/" target="_blank">условиями и правилами</a> выдачи займов</span></label>
-      <label class="check"><input type="checkbox" name="pd" required><span><a href="/soglasie-na-obrabotku-pd/" target="_blank">согласие на обработку персональных данных</a></span></label>
-      <label class="check"><input type="checkbox" name="bki" required><span>согласие на запрос кредитной истории в БКИ</span></label>
-      <label class="check"><input type="checkbox" name="asp" required><span><a href="/dokumenty/#asp" target="_blank">соглашение о простой электронной подписи</a></span></label>
-      <label class="check check--optional"><input type="checkbox" name="ads"><span>хочу получать новости и предложения — необязательно</span></label>
-    </fieldset>
-    <p class="field__err" data-err="consents">Чтобы продолжить, отметьте обязательные согласия</p>
+    ${phoneField()}
+    ${consentFields()}
     <button class="btn btn--primary btn--lg btn--block" type="submit">Продолжить</button>
     <p class="modal__fine">Заявка ни к чему не обязывает: договор заключается, только когда вы подпишете индивидуальные условия.</p>
     <div class="modal__done" data-apply-done hidden></div>
