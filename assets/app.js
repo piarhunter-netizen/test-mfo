@@ -130,7 +130,7 @@
       postJson(API + '/apply', payload)
         .then(function (res) {
           try { sessionStorage.setItem('lk-phone', payload.phone); } catch (e2) { /* ignore */ }
-          show(res.registered
+          show(res.inCabinet || loggedIn
             ? '<strong>Заявка принята.</strong> Статус решения — в <a href="' + BASE + '/lk/">личном кабинете</a>.'
             : '<strong>Заявка принята.</strong> Чтобы следить за решением, <a href="' + BASE + '/lk/login/#register">создайте личный кабинет</a> — это займёт минуту.');
           form.querySelector('[data-step2]').hidden = true;
@@ -170,14 +170,17 @@
   // ---------- Личный кабинет ----------
   var authForms = {};
   document.querySelectorAll('form[data-auth]').forEach(function (f) { authForms[f.getAttribute('data-auth')] = f; });
-  var msg = function (form, text, ok) {
+  // html — только для наших собственных шаблонов; текст от сервера выводится как текст
+  var msg = function (form, text, ok, html) {
     var m = form.querySelector('[data-msg]');
     if (!text) { m.hidden = true; return; }
-    m.innerHTML = text; m.hidden = false; m.classList.toggle('is-ok', !!ok);
+    if (html) m.innerHTML = text; else m.textContent = text;
+    m.hidden = false; m.classList.toggle('is-ok', !!ok);
   };
+  var escT = function (t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var invalid = function (input, bad) { input.closest('.field').classList.toggle('is-invalid', bad); return bad; };
   var noApi = 'Демо-режим: регистрация и вход работают, когда сайт запущен на сервере (node server.js).';
-  var devNote = function (res) { return res && res.devCode ? ' Тестовый режим без СМС-шлюза: код <b>' + res.devCode + '</b>.' : ''; };
+  var devNote = function (res) { return res && res.devCode ? ' Тестовый режим без СМС-шлюза: код <b>' + escT(res.devCode) + '</b>.' : ''; };
 
   document.querySelectorAll('[data-toggle-pass]').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -252,10 +255,10 @@
           var s1 = f.querySelector('[data-step1]'); if (s1) s1.hidden = true;
           if (res.tgLink) {
             if (win) win.location.href = res.tgLink;
-            msg(f, 'Откройте бота, нажмите <b>«Поделиться номером»</b> — код придёт в чат. <a href="' + res.tgLink + '" target="_blank" rel="noopener">Открыть Telegram</a>', true);
+            msg(f, 'Откройте бота, нажмите <b>«Поделиться номером»</b> — код придёт в чат. <a href="' + escT(res.tgLink) + '" target="_blank" rel="noopener">Открыть Telegram</a>', true, true);
           } else {
             if (win) win.close();
-            msg(f, 'Мы отправили код в СМС на ' + f.phone.value + '.' + devNote(res), true);
+            msg(f, 'Мы отправили код в СМС на ' + escT(f.phone.value) + '.' + devNote(res), true, true);
           }
           countdown();
           f.code.focus();
@@ -268,7 +271,8 @@
         e.preventDefault();
         if (step2.hidden) {
           var btn = e.submitter && e.submitter.getAttribute('data-channel');
-          return requestCode(btn || 'sms');
+          var smsBtn = f.querySelector('[data-channel="sms"]');
+          return requestCode(btn || (smsBtn && smsBtn.hidden ? 'tg' : 'sms'));
         }
         var bad = invalid(f.code, f.code.value.trim().length !== 6) | invalid(f.password, f.password.value.length < 8);
         if (f.password2) bad |= invalid(f.password2, f.password2.value !== f.password.value);
@@ -284,6 +288,8 @@
     // Показываем кнопку Telegram, если бот подключён на сервере
     if (API) postJson(API + '/config').then(function (c) {
       if (c.tg) document.querySelectorAll('[data-tg]').forEach(function (b) { b.hidden = false; });
+      if (!c.sms) document.querySelectorAll('[data-channel="sms"]').forEach(function (b) { b.hidden = true; });
+      if (!c.sms && c.tg) document.querySelectorAll('[data-tg]').forEach(function (b) { b.classList.add('btn--tg-main'); });
     }).catch(function () { /* ignore */ });
 
     codeFlow(authForms.register, '/register', function () {

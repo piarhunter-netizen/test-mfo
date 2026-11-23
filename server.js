@@ -31,9 +31,10 @@ const cfg = require('./site.config');
 const PORT = +process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const PROD = process.env.NODE_ENV === 'production';
-// SMS_DEMO=1 — временный тестовый режим без СМС-шлюза: код показывается на странице.
-// Только для проверки! Любой сможет зарегистрировать чужой номер.
+// SMS_DEMO=1 — тестовый режим без СМС-шлюза: код показывается на странице.
+// ОПАСНО на боевом сайте: через «Забыли пароль?» можно захватить любой аккаунт. Только для разработки.
 const SMS_DEMO = !PROD || process.env.SMS_DEMO === '1';
+const SMS_ON = !!process.env.SMS_API_URL || SMS_DEMO;
 const ROOT = path.join(__dirname, 'dist');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
@@ -53,7 +54,7 @@ const flush = () => {
   fs.writeFileSync(tmp, JSON.stringify(db), { mode: 0o600 });
   fs.renameSync(tmp, DB_FILE);
 };
-const save = () => { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 50); };
+const save = () => { clearTimeout(saveTimer); saveTimer = setTimeout(() => { try { flush(); } catch (e) { console.error('db save failed', e.message); } }, 50); };
 for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => { clearTimeout(saveTimer); try { flush(); } catch { /* */ } process.exit(0); });
 const sha = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
 const now = () => new Date().toISOString();
@@ -77,13 +78,19 @@ const checkPassword = (password, stored) => new Promise((resolve) => {
 
 // ---------- Ограничение частоты запросов ----------
 const hits = new Map();
+// limited — считает каждое обращение (для отправки кодов, заявок)
 const limited = (key, max, windowMs) => {
   const t = Date.now();
   const list = (hits.get(key) || []).filter((x) => t - x < windowMs);
+  if (list.length >= max) { hits.set(key, list); return true; } // отклонённые не продлевают блокировку
   list.push(t);
   hits.set(key, list);
-  return list.length > max;
+  return false;
 };
+// failures — только неудачные попытки (вход, коды): блокировка не наступает от чужих верных/отклонённых запросов
+const failCount = (key, windowMs) => (hits.get(key) || []).filter((x) => Date.now() - x < windowMs).length;
+const addFail = (key) => { const list = hits.get(key) || []; list.push(Date.now()); hits.set(key, list); };
+const clearFails = (key) => hits.delete(key);
 setInterval(() => {
   const t = Date.now();
   for (const [k, list] of hits) if (!list.some((x) => t - x < 3600e3)) hits.delete(k);
@@ -116,18 +123,19 @@ async function tgHandle(msg) {
     const nonce = text.split(' ')[1] || '';
     const p = tgPending.get(nonce);
     if (!p || p.exp < Date.now()) return tgSend(chatId, `Ссылка устарела. Запросите код на сайте ${cfg.brand} ещё раз.`);
-    tgChats.set(chatId, nonce);
+    tgChats.set(chatId, { nonce, exp: p.exp });
     return tgSend(chatId, `Чтобы получить код для входа в ${cfg.brand}, подтвердите номер телефона кнопкой ниже.`, {
       reply_markup: { keyboard: [[{ text: '📱 Поделиться номером', request_contact: true }]], resize_keyboard: true, one_time_keyboard: true },
     });
   }
   if (msg.contact) {
-    const nonce = tgChats.get(chatId);
+    const nonce = (tgChats.get(chatId) || {}).nonce;
     const p = nonce && tgPending.get(nonce);
     const remove = { reply_markup: { remove_keyboard: true } };
     if (!p || p.exp < Date.now()) return tgSend(chatId, 'Ссылка устарела. Запросите код на сайте ещё раз.', remove);
     if (!msg.from || msg.contact.user_id !== msg.from.id) return tgSend(chatId, 'Отправьте свой номер кнопкой «Поделиться номером».');
-    if (normPhone(msg.contact.phone_number) !== p.phone) {
+    const tgDigits = String(msg.contact.phone_number || '').replace(/\D/g, '');
+    if (!/^7\d{10}$/.test(tgDigits) || '+' + tgDigits !== p.phone) {
       tgPending.delete(nonce); tgChats.delete(chatId);
       return tgSend(chatId, 'Номер этого Telegram не совпадает с номером, указанным на сайте. Получите код по СМС или войдите в Telegram с нужным номером.', remove);
     }
@@ -147,7 +155,11 @@ async function tgLoop() {
     } catch (e) { await sleep(5000); }
   }
 }
-setInterval(() => { const t = Date.now(); for (const [k, v] of tgPending) if (v.exp < t) tgPending.delete(k); }, 60e3).unref();
+setInterval(() => {
+  const t = Date.now();
+  for (const [k, v] of tgPending) if (v.exp < t) tgPending.delete(k);
+  for (const [k, v] of tgChats) if (v.exp < t) tgChats.delete(k);
+}, 60e3).unref();
 
 // ---------- СМС ----------
 async function sendSms(phone, text) {
@@ -165,9 +177,11 @@ async function sendSms(phone, text) {
   return { sent: false };
 }
 const issueCode = async (phone, purpose, channel) => {
+  if (limited('codes:global', 300, 3600e3)) { const e = new Error('busy'); throw e; }
   const code = String(crypto.randomInt(100000, 1000000));
   db.codes[`${purpose}:${phone}`] = { hash: sha(code), exp: Date.now() + CODE_TTL_MIN * 60e3, attempts: 0 };
   save();
+  if (!(channel === 'tg' && TG_ON) && !SMS_ON) { delete db.codes[`${purpose}:${phone}`]; save(); throw new Error('sms off'); }
   if (channel === 'tg' && TG_ON) {
     const nonce = crypto.randomBytes(16).toString('hex');
     tgPending.set(nonce, { phone, code, exp: Date.now() + CODE_TTL_MIN * 60e3 });
@@ -178,12 +192,13 @@ const issueCode = async (phone, purpose, channel) => {
 };
 const useCode = (phone, purpose, code) => {
   const key = `${purpose}:${phone}`;
+  if (failCount('codefail:' + phone, 24 * 3600e3) >= 10) return 'Слишком много неверных кодов. Попробуйте завтра или позвоните нам.';
   const c = db.codes[key];
   if (!c || c.exp < Date.now()) return 'Код устарел. Запросите новый.';
   c.attempts += 1;
   if (c.attempts > 5) { delete db.codes[key]; save(); return 'Слишком много попыток. Запросите новый код.'; }
   const given = Buffer.from(sha(String(code || '').trim()));
-  if (!crypto.timingSafeEqual(given, Buffer.from(c.hash))) { save(); return 'Неверный код.'; }
+  if (!crypto.timingSafeEqual(given, Buffer.from(c.hash))) { addFail('codefail:' + phone); save(); return 'Неверный код.'; }
   delete db.codes[key];
   save();
   return null;
@@ -269,11 +284,17 @@ const readBody = (req) => new Promise((resolve, reject) => {
   });
   req.on('error', reject);
 });
-const ip = (req) => (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
+const ip = (req) => {
+  const raw = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
+  const v4 = raw.replace(/^::ffff:/, '');
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(v4)) return v4;
+  // IPv6: считаем по сети /64 — иначе у злоумышленника бесконечный запас адресов
+  return raw.split(':').slice(0, 4).join(':') + '::/64';
+};
 
 // ---------- Клиентские маршруты ----------
 const routes = {
-  'GET /api/config': async (req, res) => json(res, 200, { tg: TG_ON }),
+  'GET /api/config': async (req, res) => json(res, 200, { tg: TG_ON, sms: SMS_ON }),
   'POST /api/register/start': async (req, res, b) => {
     const phone = normPhone(b.phone);
     if (!phone) return json(res, 400, { error: 'Введите номер телефона полностью.' });
@@ -292,16 +313,19 @@ const routes = {
     const consent = db.codes[`consent:${phone}`] || {};
     delete db.codes[`consent:${phone}`];
     const user = { id: crypto.randomUUID(), phone, pass: await hashPassword(b.password), createdAt: now(), blocked: false, consents: { ...consent.consents, at: consent.at, ip: ip(req) } };
+    if (findUser(phone)) return json(res, 409, { error: 'Этот номер уже зарегистрирован.' });
     db.users.push(user);
     startSession(req, res, user);
     json(res, 200, { ok: true, redirect: '/lk/' });
   },
   'POST /api/login': async (req, res, b) => {
     const phone = normPhone(b.phone);
-    if (limited('login:' + ip(req), 10, 15 * 60e3) || (phone && limited('loginp:' + phone, 10, 15 * 60e3))) return json(res, 429, { error: 'Слишком много попыток входа. Попробуйте через 15 минут.' });
+    const W = 15 * 60e3, kIp = 'lf:' + ip(req), kPair = 'lfp:' + phone + '|' + ip(req), kAcc = 'lfa:' + phone;
+    if (failCount(kIp, W) >= 20 || failCount(kPair, W) >= 5 || failCount(kAcc, W) >= 50) return json(res, 429, { error: 'Слишком много попыток входа. Попробуйте через 15 минут.' });
     const user = phone && findUser(phone);
     const ok = await checkPassword(String(b.password || ''), user ? user.pass : '');
-    if (!user || !ok) return json(res, 401, { error: 'Неверный телефон или пароль.' });
+    if (!user || !ok) { addFail(kIp); addFail(kPair); if (phone) addFail(kAcc); return json(res, 401, { error: 'Неверный телефон или пароль.' }); }
+    clearFails(kPair);
     if (user.blocked) return json(res, 403, { error: `Доступ к кабинету ограничен. Позвоните ${cfg.contacts.phone}.` });
     startSession(req, res, user);
     json(res, 200, { ok: true, redirect: '/lk/' });
@@ -317,6 +341,7 @@ const routes = {
     const phone = normPhone(b.phone);
     if (!phone) return json(res, 400, { error: 'Введите номер телефона полностью.' });
     if (limited('code:' + phone, 3, 10 * 60e3) || limited('codeip:' + ip(req), 10, 60 * 60e3)) return json(res, 429, { error: 'Слишком много запросов кода. Попробуйте через 10 минут.' });
+    if (!(b.channel === 'tg' && TG_ON) && !SMS_ON) throw new Error('sms off');
     // Одинаковый ответ, есть номер или нет, — чтобы нельзя было проверять чужие номера
     const user = findUser(phone);
     // Для несуществующего номера отдаём «пустую» ссылку на бота — ответ выглядит так же
@@ -350,14 +375,18 @@ const routes = {
     if (!(amount >= L.minAmount && amount <= L.maxAmount && term >= L.minTerm && term <= L.maxTerm)) return json(res, 400, { error: 'Сумма или срок вне допустимых значений.' });
     const c = b.consents || {};
     if (c.docs !== true || c.pd !== true || c.bki !== true || c.asp !== true) return json(res, 400, { error: 'Нужно отметить обязательные согласия.' });
-    if (limited('apply:' + ip(req), 10, 60 * 60e3) || limited('applyp:' + phone, 5, 24 * 3600e3)) return json(res, 429, { error: 'Слишком много заявок. Попробуйте позже.' });
+    if (limited('apply:' + ip(req), 10, 60 * 60e3) || limited('applyp:' + phone, 5, 24 * 3600e3) || limited('apply:global', 500, 3600e3)) return json(res, 429, { error: 'Слишком много заявок. Попробуйте позже.' });
+    const owner = findUser(phone);
+    if (owner && owner.blocked) return json(res, 403, { error: `Подача заявок ограничена. Позвоните ${cfg.contacts.phone}.` });
+    const me = currentUser(req);
+    const verified = !!(me && me.phone === phone);
     db.applications.push({
       id: crypto.randomUUID(), phone, amount, term, status: STATUSES[0], comment: '', createdAt: now(), updatedAt: now(),
-      consents: { docs: true, pd: true, bki: true, asp: true, at: now() },
+      consents: { docs: true, pd: true, bki: true, asp: true, at: now() }, verified,
       utm: cleanUtm(b.utm), page: cleanStr(b.page), referrer: cleanStr(b.referrer, 300), ip: ip(req),
     });
     save();
-    json(res, 200, { ok: true, registered: !!findUser(phone) });
+    json(res, 200, { ok: true, inCabinet: verified });
   },
 };
 
@@ -409,6 +438,7 @@ const adminRoutes = [
     if (!validLogin(b.login)) return json(res, 400, { error: 'Логин: 3–32 символа, латиница, цифры, точка, дефис.' });
     const pe = badPassword(b.password, 10); if (pe) return json(res, 400, { error: pe });
     const admin = { id: crypto.randomUUID(), login: b.login, pass: await hashPassword(b.password), owner: true, createdAt: now() };
+    if (db.admins.length) return json(res, 403, { error: 'Администратор уже создан.' });
     db.admins.push(admin);
     ensureSetupToken();
     audit(admin, 'Создан первый администратор', admin.login);
@@ -416,11 +446,18 @@ const adminRoutes = [
     json(res, 200, { ok: true });
   }, { public: true }],
   ['POST', /^\/api\/admin\/login$/, async (req, res, b) => {
-    const login = String(b.login || '');
-    if (limited('alogin:' + ip(req), 5, 15 * 60e3) || limited('aloginu:' + login, 5, 15 * 60e3)) return json(res, 429, { error: 'Слишком много попыток. Попробуйте через 15 минут.' });
+    const login = String(b.login || '').slice(0, 32);
+    const W = 15 * 60e3, kIp = 'alf:' + ip(req), kPair = 'alfp:' + login + '|' + ip(req), kAcc = 'alfa:' + login;
+    if (failCount(kIp, W) >= 10 || failCount(kPair, W) >= 5 || failCount(kAcc, W) >= 30) return json(res, 429, { error: 'Слишком много попыток. Попробуйте через 15 минут.' });
     const admin = adminByLogin(login);
     const ok = await checkPassword(String(b.password || ''), admin ? admin.pass : '');
-    if (!admin || !ok || admin.disabled) { audit(null, 'Неудачный вход в админку', login.slice(0, 32), ip(req)); return json(res, 401, { error: 'Неверный логин или пароль.' }); }
+    if (!admin || !ok || admin.disabled) {
+      addFail(kIp); addFail(kPair); addFail(kAcc);
+      // в журнал — только попытки к существующим логинам, чтобы журнал нельзя было засорить
+      if (admin) audit(null, 'Неудачный вход в админку', login, ip(req));
+      return json(res, 401, { error: 'Неверный логин или пароль.' });
+    }
+    clearFails(kPair);
     startAdminSession(req, res, admin);
     audit(admin, 'Вход в админку', '', ip(req));
     json(res, 200, { ok: true });
@@ -519,7 +556,9 @@ const adminRoutes = [
     if (!validLogin(b.login)) return json(res, 400, { error: 'Логин: 3–32 символа, латиница, цифры, точка, дефис.' });
     if (adminByLogin(b.login)) return json(res, 409, { error: 'Такой логин уже есть.' });
     const pe = badPassword(b.password, 10); if (pe) return json(res, 400, { error: pe });
-    db.admins.push({ id: crypto.randomUUID(), login: b.login, pass: await hashPassword(b.password), owner: false, createdAt: now() });
+    const pass = await hashPassword(b.password);
+    if (adminByLogin(b.login)) return json(res, 409, { error: 'Такой логин уже есть.' });
+    db.admins.push({ id: crypto.randomUUID(), login: b.login, pass, owner: false, createdAt: now() });
     audit(admin, 'Добавлен администратор', b.login);
     json(res, 200, { ok: true });
   }],
@@ -601,6 +640,8 @@ const server = http.createServer(async (req, res) => {
     await handler(req, res, body, url, match, admin);
   } catch (e) {
     if (e.message === 'bad json') return json(res, 400, { error: 'Некорректный запрос' });
+    if (e.message === 'sms off') return json(res, 503, { error: 'Отправка СМС временно недоступна. Получите код в Telegram.' });
+    if (e.message === 'busy') return json(res, 503, { error: 'Сервис перегружен. Попробуйте через несколько минут.' });
     if (e.message === 'too large') return json(res, 413, { error: 'Слишком большой запрос' });
     console.error(e);
     if (!res.headersSent) json(res, 500, { error: 'Ошибка сервера. Попробуйте позже.' });

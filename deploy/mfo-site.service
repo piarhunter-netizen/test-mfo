@@ -12,8 +12,8 @@ Environment=NODE_ENV=production
 Environment=PORT=8090
 Environment=HOST=127.0.0.1
 Environment=DATA_DIR=/var/lib/mfo-site
-# ВРЕМЕННО: без СМС-шлюза код показывается на странице. Уберите после подключения SMS_API_URL.
-Environment=SMS_DEMO=1
+# SMS_DEMO=1 здесь НЕ включать: на боевом сайте это позволяет захватить любой аккаунт.
+# Без SMS_API_URL коды приходят только в Telegram.
 # Секреты (TG_BOT_TOKEN, TG_BOT_NAME, SMS_API_URL, SMS_API_TOKEN) — в отдельном файле с правами 600
 EnvironmentFile=-/etc/mfo-site.env
 ExecStart=/usr/bin/node server.js

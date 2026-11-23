@@ -134,7 +134,7 @@
       if (!d.items.length) { list.innerHTML = '<p class="muted adm-empty">Заявок нет.</p>'; return; }
       list.innerHTML = '<p class="muted">Найдено: ' + d.total + '</p><div class="adm-table"><table><thead><tr><th>Дата</th><th>Телефон</th><th>Сумма / срок</th><th>Статус</th><th>Комментарий</th><th>Источник</th></tr></thead><tbody>' +
         d.items.map(function (a) {
-          return '<tr data-id="' + esc(a.id) + '"><td>' + dt(a.createdAt) + '</td><td>' + phone(a.phone) + (a.registered ? ' <span class="tag">ЛК</span>' : '') + '</td>' +
+          return '<tr data-id="' + esc(a.id) + '"><td>' + dt(a.createdAt) + '</td><td>' + phone(a.phone) + (a.registered ? ' <span class="tag">ЛК</span>' : '') + (a.verified ? ' <span class="tag">подтверждён</span>' : ' <span class="tag tag--warn" title="Заявка подана без входа в кабинет — номер не подтверждён">не подтверждён</span>') + '</td>' +
             '<td><b>' + money(a.amount) + '</b><br><span class="muted">' + a.term + ' дн.</span></td>' +
             '<td><select class="input input--sm st ' + (statusCls[a.status] || '') + '" data-status>' + d.statuses.map(function (s) { return '<option' + (s === a.status ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></td>' +
             '<td><textarea class="input input--sm" data-comment rows="2" maxlength="1000" placeholder="Заметка сотрудника">' + esc(a.comment) + '</textarea></td>' +
