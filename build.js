@@ -7,89 +7,13 @@ const zlib = require('zlib');
 
 const { cfg, base, esc, absUrl, ruDate } = require('./src/lib');
 const { render, orgId } = require('./src/layout');
-const { calculator, articleCards, cta } = require('./src/components');
 const mainPages = require('./src/pages');
-const articles = require('./src/blog');
 const legal = require('./src/legal');
 
 const ROOT = __dirname;
 const OUT = path.join(ROOT, 'dist');
 
-// ---------- Статьи ----------
-const articlePages = articles.map((a) => {
-  const related = articles.filter((x) => x !== a).slice(0, 3);
-  return {
-    ...a,
-    meta: `${a.tag} · обновлено ${ruDate(a.modified || a.published)}`,
-    schema: [
-      {
-        '@type': 'Article',
-        headline: a.h1,
-        description: a.description,
-        datePublished: a.published,
-        dateModified: a.modified || a.published,
-        inLanguage: 'ru-RU',
-        mainEntityOfPage: absUrl(a.path),
-        image: absUrl('/assets/og.png'),
-        author: { '@type': 'Organization', name: cfg.company.shortName, url: absUrl('/') },
-        publisher: { '@id': orgId, '@type': 'Organization', name: cfg.company.shortName, logo: { '@type': 'ImageObject', url: absUrl('/assets/logo.svg') } },
-      },
-    ],
-    body: `
-<div class="container article-layout">
-  <article class="prose article">${a.body}</article>
-  <aside class="article__aside">${calculator({ id: 'calc-side', title: 'Рассчитайте займ', heading: 'h2' })}</aside>
-</div>
-<div class="container">
-  <section class="section" aria-labelledby="rel-title">
-    <h2 class="section__title" id="rel-title">Читайте также</h2>
-    ${articleCards(related)}
-  </section>
-</div>`,
-  };
-});
-
-const blogIndex = {
-  path: '/blog/',
-  title: `Статьи о займах и финансовой грамотности — ${cfg.brand}`,
-  description: 'Статьи о микрозаймах: как считается ПСК, новые правила для МФО, как защититься от мошенников и что делать, если нечем платить.',
-  h1: 'Статьи о займах',
-  lead: 'Объясняем простыми словами, как работают микрозаймы и как пользоваться ими безопасно.',
-  crumbs: [],
-  priority: 0.7,
-  changefreq: 'weekly',
-  schema: [
-    {
-      '@type': 'CollectionPage',
-      name: 'Статьи о займах',
-      url: absUrl('/blog/'),
-      hasPart: articles.map((a) => ({ '@type': 'Article', headline: a.h1, url: absUrl(a.path), datePublished: a.published })),
-    },
-  ],
-  body: `<div class="container">${articleCards(articles)}${cta()}</div>`,
-};
-
-let pages = [...mainPages, blogIndex, ...articlePages, ...legal];
-
-// ---------- HTML-карта сайта ----------
-const groups = [
-  ['Займы', pages.filter((p) => p.path === '/' || p.path.startsWith('/zaym-'))],
-  ['Заёмщикам', pages.filter((p) => ['/usloviya/', '/kak-poluchit/', '/kak-pogasit/', '/voprosy-i-otvety/'].includes(p.path))],
-  ['Компания', pages.filter((p) => ['/o-kompanii/', '/dokumenty/', '/kontakty/'].includes(p.path))],
-  ['Статьи', [blogIndex, ...articlePages]],
-  ['Правовая информация', legal],
-];
-pages.push({
-  path: '/karta-sajta/',
-  title: `Карта сайта — ${cfg.brand}`,
-  description: `Все разделы сайта ${cfg.brand}: займы, условия, документы компании, статьи и правовая информация.`,
-  h1: 'Карта сайта',
-  crumbs: [],
-  priority: 0.3,
-  body: `<div class="container narrow sitemap">${groups
-    .map(([t, list]) => `<section><h2>${t}</h2><ul>${list.map((p) => `<li><a href="${p.path}">${esc(p.crumbName || p.h1)}</a></li>`).join('')}</ul></section>`)
-    .join('')}</div>`,
-});
+const pages = [...mainPages, ...legal];
 
 // ---------- Проверки качества (SEO и юридические) ----------
 const problems = [];

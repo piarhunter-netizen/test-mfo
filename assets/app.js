@@ -78,18 +78,6 @@
     update();
   });
 
-  // ---------- Липкая кнопка на телефоне: скрыта, пока калькулятор на экране ----------
-  var sticky = document.querySelector('[data-mobile-cta]');
-  if (sticky && 'IntersectionObserver' in window) {
-    var visible = new Set();
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) { if (en.isIntersecting) visible.add(en.target); else visible.delete(en.target); });
-      sticky.classList.toggle('is-shown', visible.size === 0 && window.scrollY > 300);
-    }, { threshold: 0.15 });
-    document.querySelectorAll('.calc, .cta, .footer').forEach(function (el) { io.observe(el); });
-    window.addEventListener('scroll', function () { sticky.classList.toggle('is-shown', visible.size === 0 && window.scrollY > 300); }, { passive: true });
-  }
-
   // ---------- Мобильное меню ----------
   var burger = document.querySelector('[data-burger]');
   var nav = document.getElementById('site-nav');
@@ -98,38 +86,6 @@
       var open = nav.classList.toggle('is-open');
       burger.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
-  }
-
-  // ---------- Заявка ----------
-  var dialog = document.getElementById('apply');
-  var form = dialog && dialog.querySelector('[data-apply-form]');
-  function openApply(e) {
-    // На главной заявка встроена в калькулятор — прокручиваем к нему вместо модального окна
-    var inline = document.getElementById('loan');
-    if (inline && inline.hasAttribute('data-apply-form')) {
-      inline.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      var nx = inline.querySelector('[data-next]'); if (nx && !nx.hidden) nx.click();
-      return;
-    }
-    if (!dialog) return;
-    var calc = e && e.currentTarget.closest('.calc');
-    if (calc) {
-      selection = { amount: +calc.querySelector('[data-role="amount"]').value, term: +calc.querySelector('[data-role="term"]').value };
-    }
-    if (selection) {
-      form.amount.value = selection.amount;
-      form.term.value = selection.term;
-      dialog.querySelector('[data-apply-sum]').textContent = fmt(selection.amount) + ' на ' + selection.term + NB + plural(selection.term, days);
-    }
-    if (nav) { nav.classList.remove('is-open'); burger && burger.setAttribute('aria-expanded', 'false'); }
-    goal('apply_open', selection || {});
-    if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
-    setTimeout(function () { form.phone.focus(); }, 50);
-  }
-  document.querySelectorAll('[data-open-apply]').forEach(function (b) { b.addEventListener('click', openApply); });
-  if (dialog) {
-    dialog.querySelector('[data-close]').addEventListener('click', function () { dialog.close(); });
-    dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); });
   }
 
   // Маска телефона и отправка — для каждой формы заявки

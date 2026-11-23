@@ -2,12 +2,8 @@
 const fs = require('fs');
 const path = require('path');
 const { cfg, NBSP, esc, money, pct, pskText, yearRate, calc, absUrl, ruDate } = require('./lib');
-const {
-  icon, pskBox, calculator, faqBlock, faqSchema, steps, defaultSteps, features,
-  conditionsTable, requirements, cta, riskNote, articleCards, keyNumbers, trustStrip, ctaButton, applyCard,
-} = require('./components');
+const { icon, pskBox, faqBlock, faqSchema, features, conditionsTable, cta, riskNote, applyCard } = require('./components');
 const { orgId } = require('./layout');
-const articles = require('./blog');
 
 const C = cfg.company;
 const K = cfg.contacts;
@@ -57,12 +53,6 @@ const home = {
     <div class="hero__text">
       <h1 class="hero__t">Займ до${NBSP}${maxM} на${NBSP}карту</h1>
       <p class="hero__lead">Оформление онлайн за 10 минут. Сумму к возврату и полную стоимость вы видите до подписания договора.</p>
-      ${pskBox()}
-      <ul class="hero__points">
-        <li>${icon('check')}Без справок и поручителей</li>
-        <li>${icon('check')}Деньги на карту или по СБП</li>
-        <li>${icon('check')}Досрочно — без комиссий</li>
-      </ul>
     </div>
     <div class="hero__calc">${applyCard('loan')}</div>
   </div>
@@ -89,10 +79,10 @@ const home = {
       { i: 'user', t: 'Рассматриваем каждого', d: 'Даже если в кредитной истории были просрочки.' },
       { i: 'lock', t: 'Защита данных', d: 'Шифрование и хранение данных на серверах в России.' },
     ])}
-    <p class="about__reg">${icon('scale')}<span>${esc(C.shortName)} — в государственном реестре МФО Банка России, № ${C.cbrRegNumber}. Член ${esc(C.sroName)}.</span></p>
   </section>
 
   ${faqBlock(homeFaq, { title: 'Часто задаваемые вопросы' })}
+  <p class="hotline">${icon('phone')}<span>Остались вопросы? Звоните <a href="tel:${K.phoneHref}">${K.phone}</a> — бесплатно, ${esc(K.hours.toLowerCase())}.</span></p>
 
   <section class="section" id="docs" aria-labelledby="docs-title">
     <h2 class="section__title" id="docs-title">Документы</h2>
@@ -104,13 +94,6 @@ const home = {
     </ul>
   </section>
 
-  <section class="section" id="contacts" aria-labelledby="contacts-title">
-    <h2 class="section__title" id="contacts-title">Контакты</h2>
-    <ul class="contact-cards">
-      <li>${icon('phone')}<span>Горячая линия</span><a href="tel:${K.phoneHref}">${K.phone}</a><small>${esc(K.hours)}. Звонок бесплатный.</small></li>
-      <li>${icon('chat')}<span>Электронная почта</span><a href="mailto:${K.email}">${K.email}</a><small>Обращения: ${K.complaintsEmail}</small></li>
-    </ul>
-  </section>
 </div>`,
 };
 
@@ -135,141 +118,6 @@ function loanSchema(p, name) {
 function num(n) {
   return Math.round(n).toLocaleString('ru-RU').replace(/\s/g, NBSP);
 }
-
-const landing = ({ path, crumb, title, description, h1, lead, intro, featuresList, faqList, extra = '' }) => ({
-  path,
-  title,
-  description,
-  h1,
-  lead,
-  crumbs: [],
-  crumbName: crumb,
-  priority: 0.9,
-  changefreq: 'weekly',
-  schema: [loanSchema(path, crumb), faqSchema(faqList)],
-  body: `
-<div class="container">
-  <section class="landing">
-    <div class="landing__text prose">
-      ${pskBox()}
-      ${intro}
-    </div>
-    <div class="landing__calc">${calculator({ title: 'Рассчитайте займ' })}</div>
-  </section>
-  <section class="section">${features(featuresList)}</section>
-  ${steps(defaultSteps)}
-  ${ctaButton()}
-  ${extra}
-  <section class="section" aria-labelledby="c-title">
-    <h2 class="section__title" id="c-title">Условия</h2>
-    ${keyNumbers()}
-  </section>
-  ${riskNote()}
-  ${faqBlock(faqList)}
-  ${cta()}
-</div>`,
-});
-
-const landings = [
-  landing({
-    path: '/zaym-na-kartu/',
-    crumb: 'Займ на карту',
-    title: `Займ на карту онлайн до ${num(L.maxAmount)} ₽ — ${cfg.brand}`,
-    description: `Займ на карту «Мир» любого банка: от ${num(L.minAmount)} до ${num(L.maxAmount)} ₽ на ${L.minTerm}–${L.maxTerm} дней. Ставка ${pct(L.dailyRate)} в день, ПСК ${pskText()}. Онлайн-заявка за 10 минут.`,
-    h1: 'Займ на карту онлайн',
-    lead: 'Деньги на именную карту «Мир» любого российского банка — без визита в офис и справок о доходе.',
-    intro: `<p>Займ на карту — самый привычный способ получить деньги в МФО. Вы заполняете анкету на сайте, привязываете карту, оформленную на ваше имя, и после одобрения подписываете договор кодом из СМС. Деньги отправляются на карту сразу после подписания; срок зачисления зависит от банка-эмитента и обычно составляет несколько минут.</p>
-<p>Принимаем карты платёжной системы «Мир» всех российских банков. Карта должна быть именной, действующей и принадлежать заёмщику — переводы на чужие карты мы не делаем, чтобы исключить мошенничество.</p>`,
-    featuresList: [
-      { i: 'card', t: 'Любой банк', d: 'Карты «Мир» всех российских банков, включая цифровые.' },
-      { i: 'clock', t: 'Круглосуточно', d: 'Заявки принимаем 24/7, решение — автоматически.' },
-      { i: 'shield', t: 'Только ваша карта', d: 'Сверяем владельца карты с заёмщиком.' },
-    ],
-    faqList: [faq.card, faq.time, faq.early, faq.hidden],
-  }),
-  landing({
-    path: '/zaym-cherez-sbp/',
-    crumb: 'Займ через СБП',
-    title: `Займ через СБП по номеру телефона — ${cfg.brand}`,
-    description: `Займ через Систему быстрых платежей на ваш счёт по номеру телефона. От ${num(L.minAmount)} до ${num(L.maxAmount)} ₽, ставка ${pct(L.dailyRate)} в день, ПСК ${pskText()}.`,
-    h1: 'Займ через СБП по номеру телефона',
-    lead: 'Не нужно вводить номер карты: деньги придут на счёт в вашем банке по номеру мобильного телефона.',
-    intro: `<p>Система быстрых платежей (СБП) — сервис Банка России, который позволяет переводить деньги по номеру телефона. При получении займа через СБП вы выбираете свой банк из списка, а мы отправляем деньги на счёт, привязанный к номеру. Обычно перевод занимает несколько секунд.</p>
-<p>Перед отправкой мы автоматически сверяем ФИО получателя с данными заёмщика. Если счёт оформлен на другого человека, перевод не будет выполнен — это защищает вас, если кто-то пытается оформить займ от вашего имени.</p>`,
-    featuresList: [
-      { i: 'bolt', t: 'Быстрый перевод', d: 'Как правило, деньги приходят за секунды.' },
-      { i: 'phone', t: 'Только номер телефона', d: 'Не нужно вводить и хранить данные карты.' },
-      { i: 'shield', t: 'Сверка получателя', d: 'Перевод только на счёт, открытый на ваше имя.' },
-    ],
-    faqList: [faq.sbp, faq.time, faq.safe, faq.repay],
-  }),
-  landing({
-    path: '/zaym-onlajn/',
-    crumb: 'Займ онлайн',
-    title: `Займ онлайн без визита в офис — ${cfg.brand}`,
-    description: `Онлайн-займ от ${num(L.minAmount)} до ${num(L.maxAmount)} ₽: заявка, договор и получение денег — дистанционно. Ставка ${pct(L.dailyRate)} в день, ПСК ${pskText()}.`,
-    h1: 'Займ онлайн',
-    lead: 'Все этапы — от заявки до получения денег — проходят на сайте. Нужны только паспорт, телефон и карта.',
-    intro: `<p>Онлайн-займ оформляется полностью дистанционно. Договор подписывается простой электронной подписью — кодом из СМС, который приходит на ваш номер. Такая подпись имеет юридическую силу на основании соглашения об использовании АСП, с которым вы знакомитесь до подачи заявки.</p>
-<p>Перед подписанием вы увидите индивидуальные условия договора: сумму, срок, ставку, сумму к возврату и полную стоимость займа в рамке в правом верхнем углу первой страницы. Если что-то непонятно, не подписывайте договор и позвоните нам по бесплатному номеру ${K.phone}.</p>`,
-    featuresList: [
-      { i: 'home', t: 'Без визита в офис', d: 'Всё оформление проходит на сайте.' },
-      { i: 'doc', t: 'Договор онлайн', d: 'Подписание кодом из СМС, копия — в личном кабинете.' },
-      { i: 'chat', t: 'Поддержка', d: `Отвечаем по телефону ${K.phone} и почте.` },
-    ],
-    faqList: [faq.who, faq.time, faq.safe, faq.hidden],
-  }),
-  landing({
-    path: '/zaym-do-zarplaty/',
-    crumb: 'Займ до зарплаты',
-    title: `Займ до зарплаты на ${L.minTerm}–${L.maxTerm} дней — ${cfg.brand}`,
-    description: `Краткосрочный займ до зарплаты: от ${num(L.minAmount)} до ${num(L.maxAmount)} ₽ на срок до ${L.maxTerm} дней. Досрочное погашение без комиссий. ПСК ${pskText()}.`,
-    h1: 'Займ до зарплаты',
-    lead: 'Короткий займ, чтобы закрыть непредвиденный расход до ближайшего поступления денег.',
-    intro: `<p>Займ до зарплаты рассчитан на короткий срок — от ${L.minTerm} до ${L.maxTerm} дней. Выберите дату возврата так, чтобы она приходилась на день после поступления зарплаты: тогда вы погасите долг сразу и не переплатите.</p>
-<p>Проценты начисляются за каждый день пользования деньгами. Если зарплата пришла раньше — верните займ досрочно, и проценты будут пересчитаны за фактический срок. Например, ${money(L.defaultAmount)} на 10 дней обойдутся в ${money(calc(L.defaultAmount, 10).interest)} процентов.</p>`,
-    featuresList: [
-      { i: 'calendar', t: 'Срок под вашу дату', d: `Любой срок от ${L.minTerm} до ${L.maxTerm} дней.` },
-      { i: 'percent', t: 'Проценты за дни', d: 'Платите только за фактические дни пользования.' },
-      { i: 'wallet', t: 'Досрочно без комиссий', d: 'Полностью или частично в любой день.' },
-    ],
-    faqList: [faq.early, faq.prolong, faq.late, faq.limit3],
-  }),
-  landing({
-    path: '/zaym-s-plohoj-kreditnoj-istoriej/',
-    crumb: 'Займ с плохой кредитной историей',
-    title: `Займ с плохой кредитной историей: как повысить шансы — ${cfg.brand}`,
-    description: 'Рассматриваем заявки заёмщиков с просрочками в прошлом. Объясняем, что влияет на решение и почему никто не может гарантировать одобрение.',
-    h1: 'Займ с плохой кредитной историей',
-    lead: 'Мы рассматриваем заявки заёмщиков с просрочками в прошлом. Рассказываем честно, от чего зависит решение.',
-    intro: `<p>Кредитная история — важный, но не единственный фактор при оценке заявки. Мы смотрим на текущую долговую нагрузку, доход, давность прошлых просрочек и полноту анкеты. Поэтому даже при неидеальной истории шанс получить займ есть.</p>
-<p>Гарантировать одобрение не может ни одна финансовая организация: МФО обязана оценить платёжеспособность заёмщика и не выдавать займ, если платежи станут непосильными. Объявления «займ без отказа» и «без проверки кредитной истории» — повод насторожиться.</p>
-<h2>Как повысить шансы на одобрение</h2>
-<ul><li>Укажите в анкете точные данные о доходе и месте работы.</li><li>Начните с небольшой суммы и короткого срока.</li><li>Закройте или уменьшите текущие просрочки.</li><li>Проверьте свою кредитную историю — дважды в год это бесплатно через Госуслуги.</li></ul>`,
-    featuresList: [
-      { i: 'user', t: 'Индивидуальная оценка', d: 'Учитываем не только прошлые просрочки.' },
-      { i: 'scale', t: 'Честно о рисках', d: 'Не обещаем одобрение всем — это запрещено законом.' },
-      { i: 'doc', t: 'Улучшение истории', d: 'Своевременный возврат займа отражается в БКИ.' },
-    ],
-    faqList: [faq.badCh, faq.limit3, faq.selfban, faq.late],
-  }),
-  landing({
-    path: '/zaym-pensioneram/',
-    crumb: 'Займ пенсионерам',
-    title: `Займ пенсионерам до ${L.maxAge} лет онлайн — ${cfg.brand}`,
-    description: `Онлайн-займ для пенсионеров до ${L.maxAge} лет: от ${num(L.minAmount)} до ${num(L.maxAmount)} ₽ на карту или через СБП. Ставка ${pct(L.dailyRate)} в день, ПСК ${pskText()}.`,
-    h1: 'Займ пенсионерам',
-    lead: `Выдаём займы гражданам до ${L.maxAge} лет, в том числе работающим и неработающим пенсионерам.`,
-    intro: `<p>Пенсия — регулярный доход, который учитывается при оценке заявки. Достаточно указать её размер в анкете; справки из Социального фонда не требуются. Деньги можно получить на карту «Мир», на которую приходит пенсия, или через СБП.</p>
-<p>Прежде чем брать займ, посчитайте, какая часть пенсии уйдёт на его возврат. Если сумма платежа больше трети ежемесячного дохода, стоит уменьшить сумму займа. Никогда не сообщайте коды из СМС людям, которые представляются сотрудниками банка, МФО или полиции и просят срочно оформить займ, — это мошенники.</p>`,
-    featuresList: [
-      { i: 'user', t: `До ${L.maxAge} лет`, d: 'Рассматриваем заявки работающих и неработающих пенсионеров.' },
-      { i: 'card', t: 'На пенсионную карту', d: 'Можно получить на карту, куда приходит пенсия.' },
-      { i: 'shield', t: 'Защита от мошенников', d: 'Сверяем владельца карты и номера телефона.' },
-    ],
-    faqList: [faq.pension, faq.who, faq.safe, faq.early],
-  }),
-];
 
 // ---------- Условия ----------
 const usloviya = {
@@ -307,125 +155,6 @@ const usloviya = {
   </section>
   ${riskNote()}
   ${cta()}
-</div>`,
-};
-
-// ---------- Как получить ----------
-const kakPoluchit = {
-  path: '/kak-poluchit/',
-  title: `Как получить займ онлайн: пошаговая инструкция — ${cfg.brand}`,
-  description: 'Пошаговая инструкция: как подать заявку на займ, какие нужны документы, как подписать договор и получить деньги на карту или через СБП.',
-  h1: 'Как получить займ',
-  lead: 'Четыре шага и около 10 минут. Рассказываем, что понадобится и как проходит проверка.',
-  crumbs: [],
-  priority: 0.8,
-  schema: [
-    {
-      '@type': 'HowTo',
-      name: 'Как получить займ онлайн',
-      totalTime: 'PT10M',
-      step: defaultSteps.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, name: s.t, text: s.d })),
-    },
-  ],
-  body: `
-<div class="container">
-  ${steps(defaultSteps, 'Пошагово')}
-  <section class="section split">
-    <div class="prose">
-      <h2>Что понадобится</h2>
-      ${requirements()}
-      <h2>Как проходит проверка</h2>
-      <p>После отправки анкеты мы проверяем паспортные данные, запрашиваем кредитную историю (с вашего согласия), проверяем наличие самозапрета и рассчитываем показатель долговой нагрузки. Обычно это занимает несколько минут.</p>
-      <p>Мы можем попросить сделать фото с паспортом или подтвердить личность другим способом — это нужно, чтобы никто не смог оформить займ от вашего имени.</p>
-      <h2>Подписание договора</h2>
-      <p>Если решение положительное, вы увидите индивидуальные условия: сумму, срок, ставку, сумму к возврату и ПСК. Прочитайте их внимательно. Договор подписывается кодом из СМС; копия будет доступна в личном кабинете и придёт на почту.</p>
-    </div>
-    <div>${calculator({ title: 'Рассчитайте займ' })}</div>
-  </section>
-  ${riskNote()}
-  ${cta()}
-</div>`,
-};
-
-// ---------- Как погасить ----------
-const repayMethods = [
-  { i: 'card', t: 'Картой в личном кабинете', d: 'Без комиссии. Платёж зачисляется сразу. Можно погасить полностью или частично.' },
-  { i: 'bolt', t: 'Через СБП', d: 'По QR-коду или ссылке из личного кабинета. Комиссию за перевод банк обычно не берёт.' },
-  { i: 'doc', t: 'По реквизитам', d: 'Переводом из любого банка. Зачисление — до 3 рабочих дней, учитывайте это при выборе даты.' },
-];
-const kakPogasit = {
-  path: '/kak-pogasit/',
-  title: `Как погасить займ: способы оплаты и досрочное погашение — ${cfg.brand}`,
-  description: 'Способы погашения займа: картой, через СБП или по реквизитам. Как погасить досрочно, продлить срок и что делать при просрочке.',
-  h1: 'Как погасить займ',
-  lead: 'Три способа оплаты, досрочное погашение без комиссий и помощь, если возникли трудности.',
-  crumbs: [],
-  priority: 0.8,
-  body: `
-<div class="container narrow">
-  <section class="section">${features(repayMethods)}</section>
-  <section class="section prose">
-    <h2>Реквизиты для оплаты</h2>
-    <div class="table-wrap"><table class="table"><tbody>
-      <tr><th scope="row">Получатель</th><td>${esc(C.shortName)}</td></tr>
-      <tr><th scope="row">ИНН / КПП</th><td>${C.inn} / ${C.kpp}</td></tr>
-      <tr><th scope="row">Расчётный счёт</th><td>[номер счёта]</td></tr>
-      <tr><th scope="row">Банк</th><td>[наименование банка], БИК [БИК], к/с [корр. счёт]</td></tr>
-      <tr><th scope="row">Назначение платежа</th><td>Погашение по договору займа № …, ФИО заёмщика</td></tr>
-    </tbody></table></div>
-    <h2>Досрочное погашение</h2>
-    <p>Вернуть займ можно полностью или частично в любой день без предварительного уведомления и комиссий. Проценты начисляются только за фактические дни пользования деньгами. При частичном погашении сумма сначала идёт на погашение процентов, затем — основного долга, в порядке, установленном ч. 20 ст. 5 353-ФЗ.</p>
-    <h2>Если не получается заплатить вовремя</h2>
-    <p>Напишите или позвоните нам до даты платежа — так проще найти решение: продлить срок, разбить долг на части или оформить кредитные каникулы, если у вас есть на них право. Подробнее — в статье <a href="/blog/chto-delat-esli-nechem-platit-zaym/">«Что делать, если нечем платить займ»</a>.</p>
-    <aside class="note">${icon('shield', 'note__ico')}<div><strong>Осторожно, мошенники.</strong> Мы никогда не просим переводить деньги на карты физических лиц. Платите только способами, указанными на этой странице и в личном кабинете.</div></aside>
-  </section>
-</div>`,
-};
-
-// ---------- О компании ----------
-const oKompanii = {
-  path: '/o-kompanii/',
-  title: `О компании ${C.shortName}: реестр ЦБ, СРО, реквизиты`,
-  description: `${C.shortName} — микрокредитная компания в государственном реестре МФО Банка России № ${C.cbrRegNumber}. Сведения о членстве в СРО, руководстве и реквизиты.`,
-  h1: 'О компании',
-  lead: `${esc(C.shortName)} — микрокредитная компания, которая выдаёт онлайн-займы гражданам России.`,
-  crumbs: [],
-  withOrg: true,
-  priority: 0.7,
-  schema: [{ '@type': 'AboutPage', url: absUrl('/o-kompanii/'), about: { '@id': orgId } }],
-  body: `
-<div class="container narrow">
-  <section class="section prose">
-    <p>Мы работаем по правилам Федеральных законов № 151-ФЗ «О микрофинансовой деятельности и микрофинансовых организациях» и № 353-ФЗ «О потребительском кредите (займе)», базовых стандартов, утверждённых Банком России, и стандартов саморегулируемой организации, членом которой являемся.</p>
-    <p>Наш принцип — прозрачность: стоимость займа видна до подачи заявки, а все условия отражены в договоре. Мы не навязываем услуги и не используем агрессивных методов взыскания.</p>
-  </section>
-  <section class="section">
-    <h2 class="section__title">Сведения о компании</h2>
-    <div class="table-wrap"><table class="table"><tbody>
-      <tr><th scope="row">Полное наименование</th><td>${esc(C.fullName)}</td></tr>
-      <tr><th scope="row">Сокращённое наименование</th><td>${esc(C.shortName)}</td></tr>
-      <tr><th scope="row">ИНН / КПП</th><td>${C.inn} / ${C.kpp}</td></tr>
-      <tr><th scope="row">ОГРН</th><td>${C.ogrn}</td></tr>
-      <tr><th scope="row">Реестр МФО Банка России</th><td>Регистрационный номер ${C.cbrRegNumber}, дата внесения ${C.cbrRegDate} · <a href="https://www.cbr.ru/microfinance/registry/" target="_blank" rel="noopener">проверить в реестре</a></td></tr>
-      <tr><th scope="row">Членство в СРО</th><td>${esc(C.sroName)}, с ${C.sroMemberSince}, № ${esc(C.sroMemberNumber)} · <a href="${C.sroUrl}" target="_blank" rel="noopener">сайт СРО</a></td></tr>
-      <tr><th scope="row">Юридический адрес</th><td>${esc(C.legalAddress)}</td></tr>
-      <tr><th scope="row">Адрес для корреспонденции</th><td>${esc(C.officeAddress)}</td></tr>
-      <tr><th scope="row">Генеральный директор</th><td>${esc(C.director)}</td></tr>
-      <tr><th scope="row">Обособленные подразделения</th><td>${esc(C.branches)}</td></tr>
-      <tr><th scope="row">Оператор персональных данных</th><td>Реестр Роскомнадзора, № ${esc(C.rknNumber)}</td></tr>
-      <tr><th scope="row">Режим работы</th><td>${esc(K.officeHours)}; заявки на сайте — круглосуточно</td></tr>
-    </tbody></table></div>
-    <p class="small muted">Информация о составе органов управления, лицах, контролирующих компанию, и иные сведения, раскрытие которых требует Банк России, опубликованы в разделе <a href="/dokumenty/">«Документы»</a>.</p>
-  </section>
-  <section class="section">
-    <h2 class="section__title">Регуляторы и защита прав</h2>
-    <ul class="links-grid">
-      <li><a href="https://www.cbr.ru/" target="_blank" rel="noopener">${icon('scale')}<span><strong>Банк России</strong>Надзор за МФО</span></a></li>
-      <li><a href="https://www.cbr.ru/reception/" target="_blank" rel="noopener">${icon('chat')}<span><strong>Интернет-приёмная ЦБ</strong>Жалобы на финансовые организации</span></a></li>
-      <li><a href="https://finombudsman.ru/" target="_blank" rel="noopener">${icon('shield')}<span><strong>Финансовый уполномоченный</strong>Досудебное решение споров</span></a></li>
-      <li><a href="https://fincult.info/" target="_blank" rel="noopener">${icon('info')}<span><strong>Финансовая культура</strong>Просветительский портал ЦБ</span></a></li>
-    </ul>
-  </section>
 </div>`,
 };
 
@@ -473,54 +202,6 @@ const dokumenty = {
   </ul>
   <p class="small muted">Архив предыдущих редакций документов предоставляется по запросу на ${K.email}. </p>
 </div>`,
-};
-
-// ---------- Контакты ----------
-const kontakty = {
-  path: '/kontakty/',
-  title: `Контакты ${cfg.brand}: телефон, почта, подача обращений`,
-  description: `Бесплатный телефон ${K.phone}, электронная почта и адрес ${C.shortName}. Как направить обращение или жалобу и в какие сроки мы отвечаем.`,
-  h1: 'Контакты',
-  lead: 'Ответим на вопросы о займе, поможем с погашением и рассмотрим обращение.',
-  crumbs: [],
-  withOrg: true,
-  priority: 0.7,
-  schema: [{ '@type': 'ContactPage', url: absUrl('/kontakty/'), about: { '@id': orgId } }],
-  body: `
-<div class="container narrow">
-  <ul class="contact-cards">
-    <li>${icon('phone')}<span>Горячая линия</span><a href="tel:${K.phoneHref}">${K.phone}</a><small>${esc(K.hours)}. Звонок бесплатный.</small></li>
-    <li>${icon('chat')}<span>Общие вопросы</span><a href="mailto:${K.email}">${K.email}</a><small>Ответ — в течение 1 рабочего дня.</small></li>
-    <li>${icon('doc')}<span>Обращения и претензии</span><a href="mailto:${K.complaintsEmail}">${K.complaintsEmail}</a><small>Ответ — не позднее 15 рабочих дней.</small></li>
-    <li>${icon('lock')}<span>Персональные данные</span><a href="mailto:${K.pdEmail}">${K.pdEmail}</a><small>Запросы и отзыв согласия.</small></li>
-  </ul>
-  <section class="section prose">
-    <h2>Адрес</h2>
-    <p>Юридический адрес: ${esc(C.legalAddress)}.<br>Адрес для корреспонденции: ${esc(C.officeAddress)}.<br>${esc(K.officeHours)}.</p>
-    <h2>Как направить обращение</h2>
-    <p>Обращение можно направить по электронной почте, почтой России по адресу для корреспонденции или через личный кабинет. Укажите ФИО, контактные данные, номер договора (если есть) и суть вопроса. Мы рассматриваем обращения в сроки, установленные базовым стандартом защиты прав получателей финансовых услуг, и отвечаем тем же способом, которым оно получено, если вы не указали иной.</p>
-    <p>Если вы не согласны с ответом, вы вправе обратиться в <a href="https://www.cbr.ru/reception/" target="_blank" rel="noopener">Банк России</a>, к <a href="https://finombudsman.ru/" target="_blank" rel="noopener">финансовому уполномоченному</a> (по спорам до 500${NBSP}000${NBSP}₽; телефон 8 800 200-00-10), в ${esc(C.sroName)} или в суд.</p>
-  </section>
-</div>`,
-};
-
-// ---------- Вопросы и ответы ----------
-const allFaq = [
-  { title: 'Получение займа', items: [faq.who, faq.time, faq.badCh, faq.selfban, faq.limit3, faq.pension, faq.card, faq.sbp] },
-  { title: 'Стоимость и условия', items: [faq.hidden, { q: 'Что такое ПСК?', a: `Полная стоимость займа в процентах годовых — показатель, который учитывает все платежи по договору. Наша ПСК — ${pskText()}. Подробнее — в статье <a href="/blog/chto-takoe-psk/">«Что такое ПСК»</a>.` }, faq.prolong] },
-  { title: 'Погашение', items: [faq.repay, faq.early, faq.late] },
-  { title: 'Безопасность', items: [faq.safe, { q: 'Мне позвонили и попросили оформить займ — что делать?', a: 'Положите трубку. Сотрудники банков, МФО, полиции и госорганов никогда не просят оформить займ, перевести деньги на «безопасный счёт» или назвать код из СМС. Если займ уже оформлен без вашего участия — сразу позвоните нам и обратитесь в полицию.' }] },
-];
-const voprosy = {
-  path: '/voprosy-i-otvety/',
-  title: `Вопросы и ответы о займах — ${cfg.brand}`,
-  description: 'Ответы на частые вопросы: кто может получить займ, как быстро рассматривается заявка, как погасить досрочно, что будет при просрочке.',
-  h1: 'Вопросы и ответы',
-  lead: 'Не нашли ответ? Позвоните по бесплатному номеру ' + K.phone + '.',
-  crumbs: [],
-  priority: 0.7,
-  schema: [faqSchema(allFaq.flatMap((g) => g.items))],
-  body: `<div class="container narrow">${allFaq.map((g, i) => faqBlock(g.items, { title: g.title, id: 'faq-' + i })).join('')}${cta('Остались вопросы?', 'Позвоните нам или оформите заявку — расскажем об условиях до подписания договора.')}</div>`,
 };
 
 // ---------- Вход в личный кабинет ----------
@@ -597,7 +278,7 @@ const notFound = {
   lead: 'Возможно, она была удалена или вы ошиблись в адресе.',
   noindex: true,
   noSitemap: true,
-  body: `<div class="container narrow"><p class="btn-row"><a class="btn btn--primary" href="/">На главную</a><a class="btn btn--ghost" href="/usloviya/">Условия займа</a><a class="btn btn--ghost" href="/karta-sajta/">Карта сайта</a></p></div>`,
+  body: `<div class="container narrow"><p class="btn-row"><a class="btn btn--primary" href="/">На главную</a><a class="btn btn--ghost" href="/lk/login/">Личный кабинет</a></p></div>`,
 };
 
-module.exports = [home, ...landings, usloviya, kakPoluchit, kakPogasit, oKompanii, dokumenty, kontakty, voprosy, lkLogin, notFound];
+module.exports = [home, usloviya, dokumenty, lkLogin, notFound];

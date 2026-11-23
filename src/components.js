@@ -36,63 +36,6 @@ const pskBox = () => `
   <div class="psk__item"><span class="psk__label">Полная стоимость займа (ПСК)</span><span class="psk__value">${pskText()}</span></div>
 </div>`;
 
-const calculator = ({ id = 'calc', title = 'Рассчитайте займ', heading = 'h2' } = {}) => {
-  const ex = calc(L.defaultAmount, L.defaultTerm);
-  return `
-<section class="calc" id="${id}" aria-labelledby="${id}-title" data-rate="${L.dailyRate}">
-  <${heading} class="calc__title" id="${id}-title">${title}</${heading}>
-  <div class="calc__field">
-    <div class="calc__row">
-      <label for="${id}-amount">Сумма займа</label>
-      <output class="calc__out" data-out="amount" for="${id}-amount">${money(L.defaultAmount)}</output>
-    </div>
-    <input class="range" type="range" id="${id}-amount" name="amount" data-role="amount"
-      min="${L.minAmount}" max="${L.maxAmount}" step="${L.step}" value="${L.defaultAmount}"
-      aria-valuetext="${L.defaultAmount} рублей">
-    <div class="calc__limits"><span>${money(L.minAmount)}</span><span>${money(L.maxAmount)}</span></div>
-  </div>
-  <div class="calc__field">
-    <div class="calc__row">
-      <label for="${id}-term">Срок</label>
-      <output class="calc__out" data-out="term" for="${id}-term">${L.defaultTerm}${NBSP}дн.</output>
-    </div>
-    <input class="range" type="range" id="${id}-term" name="term" data-role="term"
-      min="${L.minTerm}" max="${L.maxTerm}" step="1" value="${L.defaultTerm}"
-      aria-valuetext="${L.defaultTerm} дней">
-    <div class="calc__limits"><span>${L.minTerm}${NBSP}дней</span><span>${L.maxTerm}${NBSP}дней</span></div>
-  </div>
-  <div class="calc__result">
-    <div class="calc__result-row">
-      <span>Вернуть <span data-out="date">через ${L.defaultTerm}${NBSP}дн.</span></span>
-      <strong class="calc__total" data-out="total">${money(ex.total)}</strong>
-    </div>
-    <div class="calc__result-sub">из них проценты — <span data-out="interest">${money(ex.interest)}</span></div>
-  </div>
-  <button class="btn btn--primary btn--lg btn--block" type="button" data-open-apply>Получить деньги</button>
-  <p class="calc__note">Ставка ${pct(L.dailyRate)} в день, ПСК ${pskText()}. Расчёт предварительный, при возврате в срок. Решение принимается индивидуально.</p>
-</section>`;
-};
-
-// Четыре главные цифры — компактная замена большой таблицы на главной и посадочных
-const keyNumbers = () => `
-<ul class="keynums">
-  <li><span>Сумма</span><strong>${num(L.minAmount)}–${money(L.maxAmount)}</strong></li>
-  <li><span>Срок</span><strong>${L.minTerm}–${L.maxTerm} дней</strong></li>
-  <li><span>Ставка</span><strong>${pct(L.dailyRate)} в день</strong></li>
-  <li><span>ПСК</span><strong>${pskText()}</strong></li>
-</ul>
-<p class="keynums__more">Неустойка за просрочку — не более ${L.penaltyRate}${NBSP}% годовых. Переплата ограничена ${L.overpaymentCap}${NBSP}% от суммы займа. <a href="/usloviya/">Все условия и пример расчёта</a></p>`;
-
-const trustStrip = () => `
-<ul class="trust">
-  <li>${icon('scale')}<div><strong>В реестре Банка России</strong><span>№ ${cfg.company.cbrRegNumber}</span></div></li>
-  <li>${icon('percent')}<div><strong>Без скрытых платежей</strong><span>Всё входит в ПСК</span></div></li>
-  <li>${icon('calendar')}<div><strong>Досрочно без комиссий</strong><span>Проценты только за дни</span></div></li>
-  <li>${icon('lock')}<div><strong>Данные под защитой</strong><span>Хранятся в России</span></div></li>
-</ul>`;
-
-const ctaButton = (text = 'Получить деньги') => `<p class="center cta-inline"><button class="btn btn--primary btn--lg" type="button" data-open-apply>${text}</button></p>`;
-
 // Поля заявки: телефон и согласия. Каждое согласие — отдельная галочка, ни одна не отмечена заранее.
 const phoneField = () => `
     <label class="field">
@@ -172,25 +115,6 @@ const faqSchema = (items) => ({
   })),
 });
 
-const steps = (list, title = 'Как получить займ') => `
-<section class="section" aria-labelledby="steps-title">
-  <h2 class="section__title" id="steps-title">${title}</h2>
-  <ol class="steps">
-    ${list
-      .map(
-        (s, i) => `<li class="step"><span class="step__n">${i + 1}</span><h3 class="step__t">${s.t}</h3><p>${s.d}</p></li>`
-      )
-      .join('\n    ')}
-  </ol>
-</section>`;
-
-const defaultSteps = [
-  { t: 'Выберите сумму и срок', d: 'Калькулятор сразу покажет, сколько вернуть.' },
-  { t: 'Заполните анкету', d: 'Паспорт, телефон и доход — около 5 минут.' },
-  { t: 'Подпишите договор', d: 'Кодом из СМС. Условия и ПСК — до подписи.' },
-  { t: 'Получите деньги', d: 'На карту или по СБП на ваш счёт.' },
-];
-
 const features = (list) => `
 <ul class="features">
   ${list
@@ -220,39 +144,21 @@ const conditionsTable = () => {
 </div>`;
 };
 
-const requirements = () => `
-<ul class="checklist">
-  <li>${icon('check')}Гражданин РФ от ${L.minAge} до ${L.maxAge} лет</li>
-  <li>${icon('check')}Паспорт РФ и постоянная регистрация</li>
-  <li>${icon('check')}Телефон и карта (счёт) на ваше имя</li>
-  <li>${icon('check')}Нет самозапрета на займы</li>
-</ul>`;
-
 const cta = (title = 'Нужны деньги до зарплаты?', text = 'Рассчитайте займ и узнайте решение онлайн. Мы покажем полную стоимость до подписания договора.') => `
 <section class="cta">
   <div>
     <h2 class="cta__t">${title}</h2>
     <p>${text}</p>
   </div>
-  <button class="btn btn--light btn--lg" type="button" data-open-apply>Оформить заявку</button>
+  <a class="btn btn--light btn--lg" href="/#loan">Получить деньги</a>
 </section>`;
 
 const riskNote = () => `
 <aside class="note note--warn" role="note">
   ${icon('alert', 'note__ico')}
-  <div><strong>Берите столько, сколько точно вернёте в срок.</strong> При просрочке начисляется неустойка, а данные передаются в бюро кредитных историй. <a href="/blog/kak-ponyat-mozhno-li-brat-zaym/">Как оценить свои возможности</a></div>
+  <div><strong>Берите столько, сколько точно вернёте в срок.</strong> При просрочке начисляется неустойка, а данные передаются в бюро кредитных историй. <a href="/usloviya/">Подробнее об условиях</a></div>
 </aside>`;
 
-const articleCards = (articles) => `
-<ul class="cards">
-  ${articles
-    .map(
-      (a) => `<li class="card"><a class="card__link" href="${a.path}"><span class="card__tag">${a.tag}</span><h3 class="card__t">${a.h1}</h3><p>${a.description}</p><span class="card__more">Читать ${icon('arrow')}</span></a></li>`
-    )
-    .join('\n  ')}
-</ul>`;
-
 module.exports = {
-  icon, pskBox, calculator, faqBlock, faqSchema, steps, defaultSteps, features,
-  conditionsTable, requirements, cta, riskNote, articleCards, keyNumbers, trustStrip, ctaButton, phoneField, consentFields, applyCard,
+  icon, pskBox, faqBlock, faqSchema, features, conditionsTable, cta, riskNote, phoneField, consentFields, applyCard,
 };

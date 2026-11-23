@@ -1,6 +1,6 @@
-// Каркас страницы: <head>, шапка, подвал, модальное окно заявки, cookie-баннер
+// Каркас страницы: <head>, шапка, подвал, cookie-баннер (только если подключена Метрика)
 const { cfg, esc, pct, pskText, yearRate, money, absUrl, ruDate } = require('./lib');
-const { icon, phoneField, consentFields } = require('./components');
+const { icon } = require('./components');
 
 const C = cfg.company;
 const K = cfg.contacts;
@@ -12,48 +12,6 @@ const nav = [
   { name: 'О сервисе', path: '/#about' },
   { name: 'Вопрос-ответ', path: '/#faq' },
   { name: 'Контакты', path: '/#contacts' },
-];
-
-const footerCols = [
-  {
-    t: 'Займы',
-    links: [
-      ['Займ на карту', '/zaym-na-kartu/'],
-      ['Займ через СБП', '/zaym-cherez-sbp/'],
-      ['Займ онлайн', '/zaym-onlajn/'],
-      ['Займ до зарплаты', '/zaym-do-zarplaty/'],
-      ['Займ с плохой кредитной историей', '/zaym-s-plohoj-kreditnoj-istoriej/'],
-      ['Займ пенсионерам', '/zaym-pensioneram/'],
-    ],
-  },
-  {
-    t: 'Заёмщикам',
-    links: [
-      ['Условия и тарифы', '/usloviya/'],
-      ['Как получить займ', '/kak-poluchit/'],
-      ['Как погасить займ', '/kak-pogasit/'],
-      ['Вопросы и ответы', '/voprosy-i-otvety/'],
-      ['Если трудно платить', '/blog/chto-delat-esli-nechem-platit-zaym/'],
-      ['Статьи', '/blog/'],
-    ],
-  },
-  {
-    t: 'Компания',
-    links: [
-      ['О компании', '/o-kompanii/'],
-      ['Документы', '/dokumenty/'],
-      ['Контакты и обращения', '/kontakty/'],
-      ['Карта сайта', '/karta-sajta/'],
-    ],
-  },
-  {
-    t: 'Правовая информация',
-    links: [
-      ['Политика обработки персональных данных', '/politika-konfidencialnosti/'],
-      ['Согласие на обработку персональных данных', '/soglasie-na-obrabotku-pd/'],
-      ['Политика использования cookie', '/cookies/'],
-    ],
-  },
 ];
 
 const logo = () => `<a class="logo" href="/" aria-label="${esc(cfg.brand)} — на главную">
@@ -138,12 +96,6 @@ ${graph ? `<script type="application/ld+json">${JSON.stringify(graph)}</script>`
 };
 
 const header = (page) => `
-<div class="topbar">
-  <div class="container topbar__in">
-    <span>${esc(C.shortName)} · в государственном реестре МФО Банка России № ${esc(C.cbrRegNumber)}</span>
-    <span class="topbar__psk">Ставка ${pct(L.dailyRate)} в день · ПСК ${pskText()}</span>
-  </div>
-</div>
 <header class="header">
   <div class="container header__in">
     ${logo()}
@@ -156,61 +108,55 @@ const header = (page) => `
       </ul>
       <div class="nav__extra">
         <a class="nav__phone" href="tel:${K.phoneHref}">${icon('phone')}${K.phone}</a>
-        <a class="btn btn--ghost" href="/lk/login/" rel="nofollow">${icon('user')}Войти</a>
-        <a class="btn btn--primary" href="/#loan">Получить деньги</a>
+        <a class="btn btn--primary" href="/lk/login/" rel="nofollow">${icon('user')}Войти</a>
       </div>
     </nav>
   </div>
 </header>`;
 
+const ext = (href, text) => `<a href="${href}" target="_blank" rel="noopener">${text}</a>`;
+
 const footer = () => `
-<footer class="footer">
+<footer class="footer" id="contacts">
   <div class="container">
     <div class="footer__top">
       <div class="footer__brand">
         ${logo()}
-        <p>${esc(cfg.slogan)}. Онлайн-займы на карту и через СБП по всей России.</p>
         <a class="footer__phone" href="tel:${K.phoneHref}">${K.phone}</a>
-        <p class="muted">Звонок по России бесплатный. ${esc(K.hours)}.</p>
-        <p><a href="mailto:${K.email}">${K.email}</a></p>
+        <p class="muted">Звонок бесплатный. ${esc(K.hours)}.</p>
+        <p><a href="mailto:${K.email}">${K.email}</a> — вопросы и личный кабинет<br><a href="mailto:${K.complaintsEmail}">${K.complaintsEmail}</a> — обращения и жалобы</p>
       </div>
-      ${footerCols
-        .map(
-          (c) => `<div class="footer__col"><h2 class="footer__t">${c.t}</h2><ul>${c.links
-            .map(([n, p]) => `<li><a href="${p}">${n}</a></li>`)
-            .join('')}</ul></div>`
-        )
-        .join('')}
+      <div class="footer__col">
+        <h2 class="footer__t">Документы</h2>
+        <ul>
+          <li><a href="/usloviya/">Информация об условиях займа</a></li>
+          <li><a href="/dokumenty/">Правила и общие условия</a></li>
+          <li><a href="/politika-konfidencialnosti/">Политика обработки персональных данных</a></li>
+          <li><a href="/soglasie-na-obrabotku-pd/">Согласие на обработку персональных данных</a></li>
+          <li><a href="/cookies/">Политика cookie</a></li>
+        </ul>
+      </div>
+      <div class="footer__col">
+        <h2 class="footer__t">Защита прав</h2>
+        <ul>
+          <li>${ext('https://www.cbr.ru/microfinance/registry/', 'Реестр МФО Банка России')}</li>
+          <li>${ext('https://www.cbr.ru/reception/', 'Интернет-приёмная Банка России')}</li>
+          <li>${ext('https://finombudsman.ru/', 'Финансовый уполномоченный')}</li>
+          <li>${ext('https://www.cbr.ru/microfinance/', 'Базовые стандарты для МФО')}</li>
+          <li>${ext(C.sroUrl, esc(C.sroName))}</li>
+        </ul>
+      </div>
     </div>
     <div class="footer__legal">
-      <h2 class="footer__t">Сведения о компании</h2>
-      <p>${esc(C.fullName)} (${esc(C.shortName)}), ИНН ${C.inn}, ОГРН ${C.ogrn}. Регистрационный номер записи в государственном реестре микрофинансовых организаций ${C.cbrRegNumber} от ${C.cbrRegDate}. Член ${esc(C.sroName)} с ${C.sroMemberSince}, номер в реестре членов ${esc(C.sroMemberNumber)}. Юридический адрес: ${esc(C.legalAddress)}. ${esc(C.branches)}.</p>
-      <p>Условия: сумма от ${money(L.minAmount)} до ${money(L.maxAmount)}, срок от ${L.minTerm} до ${L.maxTerm} дней, ставка ${pct(L.dailyRate)} в день (${yearRate()} годовых), полная стоимость займа ${pskText()}. Неустойка за просрочку — не более ${L.penaltyRate}${' '}% годовых. Сумма процентов, неустойки и платежей за услуги не может превышать ${L.overpaymentCap}${' '}% от суммы займа. Решение о выдаче принимается индивидуально; компания вправе отказать без объяснения причин (ч. 5 ст. 7 Федерального закона № 353-ФЗ).</p>
-      <p>Надзор за деятельностью микрофинансовых организаций осуществляет <a href="https://www.cbr.ru/" target="_blank" rel="noopener">Банк России</a>. Проверить компанию — в <a href="https://www.cbr.ru/microfinance/registry/" target="_blank" rel="noopener">реестре МФО</a>; направить жалобу — через <a href="https://www.cbr.ru/reception/" target="_blank" rel="noopener">интернет-приёмную Банка России</a>. Споры до 500${' '}000${' '}₽ рассматривает <a href="https://finombudsman.ru/" target="_blank" rel="noopener">финансовый уполномоченный</a> (8 800 200-00-10). <a href="https://www.cbr.ru/microfinance/" target="_blank" rel="noopener">Базовые стандарты для МФО</a> — на сайте Банка России.</p>
-      <p class="muted">Информация на сайте не является публичной офертой. Займ — это обязательство: оценивайте свои финансовые возможности и риски. Информация актуальна на ${ruDate(cfg.updated)}.</p>
+      <p>${esc(C.fullName)}, ИНН ${C.inn}, ОГРН ${C.ogrn}. Номер в государственном реестре МФО ${C.cbrRegNumber} от ${C.cbrRegDate}. Член ${esc(C.sroName)} с ${C.sroMemberSince}, № ${esc(C.sroMemberNumber)}. Адрес: ${esc(C.legalAddress)}. ${esc(C.branches)}.</p>
+      <p>Сумма от ${money(L.minAmount)} до ${money(L.maxAmount)}, срок от ${L.minTerm} до ${L.maxTerm} дней, ставка ${pct(L.dailyRate)} в день (${yearRate()} годовых), ПСК ${pskText()}. Неустойка — не более ${L.penaltyRate}${'\u00a0'}% годовых. Переплата не может превышать ${L.overpaymentCap}${'\u00a0'}% от суммы займа. Решение о выдаче принимается индивидуально. Споры до 500${'\u00a0'}000${'\u00a0'}₽ рассматривает финансовый уполномоченный: 8 800 200-00-10.</p>
     </div>
     <div class="footer__bottom">
       <span>© ${new Date(cfg.updated).getFullYear()} ${esc(C.shortName)}</span>
-      <a href="/karta-sajta/">Карта сайта</a>
+      <span>Информация актуальна на ${ruDate(cfg.updated)}</span>
     </div>
   </div>
 </footer>`;
-
-const applyModal = () => `
-<dialog class="modal" id="apply" aria-labelledby="apply-title">
-  <form class="modal__box" method="dialog" data-apply-form novalidate>
-    <button class="modal__close" type="button" data-close aria-label="Закрыть">×</button>
-    <h2 class="modal__t" id="apply-title">Заявка на займ</h2>
-    <p class="modal__sum" data-apply-sum>${money(L.defaultAmount)} на ${L.defaultTerm} дн.</p>
-    <input type="hidden" name="amount" value="${L.defaultAmount}">
-    <input type="hidden" name="term" value="${L.defaultTerm}">
-    ${phoneField()}
-    ${consentFields()}
-    <button class="btn btn--primary btn--lg btn--block" type="submit">Продолжить</button>
-    <p class="modal__fine">Заявка ни к чему не обязывает: договор заключается, только когда вы подпишете индивидуальные условия.</p>
-    <div class="modal__done" data-apply-done hidden></div>
-  </form>
-</dialog>`;
 
 const cookieBanner = () => `
 <div class="cookie" data-cookie hidden role="region" aria-label="Уведомление о cookie">
@@ -240,12 +186,10 @@ ${pageHeader(page)}
 ${page.body}
 </main>
 ${footer()}
-<div class="mobile-cta" data-mobile-cta><button class="btn btn--primary btn--lg btn--block" type="button" data-open-apply>Получить деньги</button></div>
-${applyModal()}
-${cookieBanner()}
+${cfg.metrikaId ? cookieBanner() : ''}
 <script src="/assets/app.js?v=${assets.js}" defer></script>
 </body>
 </html>
 `;
 
-module.exports = { render, orgSchema, orgId, nav, footerCols };
+module.exports = { render, orgSchema, orgId, nav };
