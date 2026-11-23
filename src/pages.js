@@ -4,7 +4,7 @@ const path = require('path');
 const { cfg, NBSP, esc, money, pct, pskText, yearRate, calc, absUrl, ruDate } = require('./lib');
 const {
   icon, pskBox, calculator, faqBlock, faqSchema, steps, defaultSteps, features,
-  conditionsTable, requirements, cta, riskNote, articleCards,
+  conditionsTable, requirements, cta, riskNote, articleCards, keyNumbers, trustStrip, ctaButton,
 } = require('./components');
 const { orgId } = require('./layout');
 const articles = require('./blog');
@@ -33,16 +33,8 @@ const faq = {
   card: { q: 'На какие карты можно получить займ?', a: 'На именные карты «Мир» российских банков, оформленные на заёмщика. Карту нужно привязать в анкете: для проверки на ней может быть временно заблокирована и сразу возвращена небольшая сумма.' },
 };
 
-const homeFaq = [faq.who, faq.time, faq.badCh, faq.early, faq.late, faq.hidden, faq.safe, faq.limit3];
+const homeFaq = [faq.who, faq.time, faq.badCh, faq.early, faq.late, faq.hidden];
 
-const advantages = [
-  { i: 'percent', t: 'Честная цена', d: `Одна ставка ${pct(L.dailyRate)} в день и ПСК ${pskText()} — без скрытых платежей и навязанных услуг.` },
-  { i: 'clock', t: 'Решение за минуты', d: 'Анкета заполняется онлайн, решение обычно приходит в течение нескольких минут.' },
-  { i: 'bolt', t: 'Деньги через СБП', d: 'Перевод по номеру телефона на ваш счёт в любом банке — участнике СБП.' },
-  { i: 'calendar', t: 'Досрочно без комиссий', d: 'Вернуть займ можно в любой день — проценты только за фактические дни.' },
-  { i: 'lock', t: 'Защита данных', d: 'Шифрование, хранение данных в России и строгий доступ сотрудников.' },
-  { i: 'scale', t: 'Под надзором Банка России', d: `Мы в государственном реестре МФО и члены СРО — это можно проверить на сайте ЦБ.` },
-];
 
 // ---------- Главная ----------
 const home = {
@@ -63,42 +55,35 @@ const home = {
 <section class="hero">
   <div class="container hero__in">
     <div class="hero__text">
-      <p class="eyebrow">Онлайн-займы от ${esc(C.shortName)}</p>
-      <h1 class="hero__t">Займ на карту до${NBSP}${maxM}<span> с понятными условиями</span></h1>
-      <p class="hero__lead">Оформите заявку за 10 минут и получите деньги на карту или через СБП. Ставка, сумма к возврату и полная стоимость видны ещё до подписания договора.</p>
+      <h1 class="hero__t">Займ до${NBSP}${maxM} на${NBSP}карту</h1>
+      <p class="hero__lead">Решение обычно за несколько минут. Сколько вернуть и полную стоимость вы видите до подписания договора.</p>
       ${pskBox()}
-      <ul class="chips">
-        <li>${icon('check')}Без справок и поручителей</li>
-        <li>${icon('check')}Досрочно без комиссий</li>
-        <li>${icon('check')}Круглосуточно онлайн</li>
-      </ul>
     </div>
     <div class="hero__calc">${calculator({ title: 'Рассчитайте займ' })}</div>
+    <ul class="hero__points">
+      <li>${icon('check')}Без справок и поручителей</li>
+      <li>${icon('check')}На карту или по СБП</li>
+      <li>${icon('check')}Заявки онлайн круглосуточно</li>
+    </ul>
   </div>
 </section>
 
+<section class="band">
+  <div class="container">${trustStrip()}</div>
+</section>
+
 <div class="container">
-  <section class="section" aria-labelledby="adv-title">
-    <h2 class="section__title" id="adv-title">Почему выбирают ${esc(cfg.brand)}</h2>
-    ${features(advantages)}
-  </section>
+  ${steps(defaultSteps, 'Как получить займ')}
+  ${ctaButton()}
 
-  ${steps(defaultSteps)}
-
-  <section class="section split" aria-labelledby="cond-title">
+  <section class="section split split--top" aria-labelledby="cond-title">
     <div>
-      <h2 class="section__title" id="cond-title">Условия займа</h2>
-      ${conditionsTable()}
-      <p class="muted small">Подробнее — на странице <a href="/usloviya/">«Условия и тарифы»</a> и в <a href="/dokumenty/">документах компании</a>.</p>
+      <h2 class="section__title" id="cond-title">Условия</h2>
+      ${keyNumbers()}
     </div>
     <div>
-      <h2 class="section__title">Требования к заёмщику</h2>
+      <h2 class="section__title">Кому выдаём</h2>
       ${requirements()}
-      <h3 class="h3">Способы получения</h3>
-      <ul class="methods">
-        <li>${icon('card')}<div><strong>На карту «Мир»</strong><span>Именная карта любого российского банка</span></div></li>
-        <li>${icon('bolt')}<div><strong>Через СБП</strong><span>По номеру телефона на ваш счёт</span></div></li>
-      </ul>
     </div>
   </section>
 
@@ -108,18 +93,14 @@ const home = {
   <p class="center"><a class="link-more" href="/voprosy-i-otvety/">Все вопросы и ответы ${icon('arrow')}</a></p>
 
   <section class="section" aria-labelledby="blog-title">
-    <h2 class="section__title" id="blog-title">Полезно знать перед займом</h2>
+    <h2 class="section__title" id="blog-title">Полезно знать</h2>
     ${articleCards(articles.slice(0, 3))}
   </section>
 
-  <section class="section prose" aria-labelledby="seo-title">
-    <h2 id="seo-title">Онлайн-займы в ${esc(cfg.brand)}: что важно знать</h2>
-    <p>${esc(C.shortName)} — микрокредитная компания, внесённая в государственный реестр микрофинансовых организаций Банка России. Мы выдаём краткосрочные займы гражданам России онлайн: от ${money(L.minAmount)} до ${maxM} на срок от ${L.minTerm} до ${L.maxTerm} дней. Посещать офис не нужно — заявка, проверка, подписание договора и получение денег проходят дистанционно.</p>
-    <p>Мы не обещаем «одобрение всем» и не пишем «займ без проверок»: такие формулировки вводят в заблуждение. Каждая заявка проходит оценку платёжеспособности, проверку кредитной истории и самозапрета — этого требует закон и это защищает заёмщика от долга, который сложно вернуть.</p>
-    <h3>Сколько стоит займ</h3>
-    <p>Процентная ставка — ${pct(L.dailyRate)} в день, это предельное значение по ч. 23 ст. 5 Федерального закона «О потребительском кредите (займе)». Например, при займе ${money(L.defaultAmount)} на ${L.maxTerm} дней проценты составят ${money(ex.interest)}, а вернуть нужно будет ${money(ex.total)}. Если погасить займ раньше, проценты пересчитаются за фактический срок. Полная стоимость займа — ${pskText()}.</p>
-    <h3>Как мы защищаем заёмщиков</h3>
-    <p>Общая сумма процентов, неустойки и платежей по договору ограничена ${L.overpaymentCap}${NBSP}% от суммы займа. Неустойка за просрочку — не более ${L.penaltyRate}${NBSP}% годовых. Мы не используем предварительно проставленные согласия на дополнительные услуги и не скрываем условия мелким шрифтом: всё, что влияет на стоимость, указано в таблице индивидуальных условий.</p>
+  <section class="section prose prose--seo" aria-labelledby="seo-title">
+    <h2 id="seo-title">Онлайн-займы в ${esc(cfg.brand)}</h2>
+    <p>${esc(C.shortName)} — микрокредитная компания из государственного реестра МФО Банка России. Выдаём займы от ${money(L.minAmount)} до ${maxM} на ${L.minTerm}–${L.maxTerm} дней полностью онлайн: заявка, договор и деньги — без визита в офис.</p>
+    <p>Ставка — ${pct(L.dailyRate)} в день. Например, ${money(L.defaultAmount)} на ${L.maxTerm} дней обойдутся в ${money(ex.interest)}, вернуть нужно ${money(ex.total)}; при досрочном возврате проценты пересчитаются за фактические дни. Мы не обещаем «одобрение всем»: каждая заявка проходит проверку платёжеспособности, кредитной истории и самозапрета — это защищает и заёмщика, и компанию.</p>
   </section>
 
   ${cta()}
@@ -166,14 +147,15 @@ const landing = ({ path, crumb, title, description, h1, lead, intro, featuresLis
       ${pskBox()}
       ${intro}
     </div>
-    <div class="landing__calc">${calculator({ title: 'Рассчитайте сумму к возврату' })}</div>
+    <div class="landing__calc">${calculator({ title: 'Рассчитайте займ' })}</div>
   </section>
   <section class="section">${features(featuresList)}</section>
   ${steps(defaultSteps)}
+  ${ctaButton()}
   ${extra}
   <section class="section" aria-labelledby="c-title">
     <h2 class="section__title" id="c-title">Условия</h2>
-    ${conditionsTable()}
+    ${keyNumbers()}
   </section>
   ${riskNote()}
   ${faqBlock(faqList)}

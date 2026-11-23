@@ -12,6 +12,20 @@
   var plural = function (n, f) { var a = n % 10, b = n % 100; return f[a === 1 && b !== 11 ? 0 : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? 1 : 2]; };
   var days = ['день', 'дня', 'дней'];
 
+  // ---------- Аналитика: цели Метрики (отправляются, только если пользователь разрешил cookie) ----------
+  var goal = function (name, params) {
+    var id = +body.getAttribute('data-metrika');
+    if (id && window.ym) window.ym(id, 'reachGoal', name, params || {});
+  };
+  // Сохраняем UTM-метки первого визита, чтобы передать их вместе с заявкой (сквозная аналитика)
+  var UTM = 'utm';
+  try {
+    var q = new URLSearchParams(location.search), u = {};
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'yclid'].forEach(function (k) { if (q.get(k)) u[k] = q.get(k); });
+    if (Object.keys(u).length) sessionStorage.setItem(UTM, JSON.stringify(u));
+  } catch (e) { /* ignore */ }
+  var readUtm = function () { try { return JSON.parse(sessionStorage.getItem(UTM) || '{}'); } catch (e) { return {}; } };
+
   // ---------- Калькулятор ----------
   var selection = null;
   document.querySelectorAll('.calc').forEach(function (calc) {
@@ -29,16 +43,30 @@
       out('term').textContent = t + NB + plural(t, days);
       out('interest').textContent = fmt(interest);
       out('total').textContent = fmt(a + interest);
-      out('date').textContent = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+      out('date').textContent = 'до ' + date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
       amount.setAttribute('aria-valuetext', a + ' рублей');
       term.setAttribute('aria-valuetext', t + ' ' + plural(t, days));
       fill(amount); fill(term);
       selection = { amount: a, term: t };
     }
-    amount.addEventListener('input', update);
-    term.addEventListener('input', update);
+    var touched = false;
+    var onInput = function () { update(); if (!touched) { touched = true; goal('calc_use'); } };
+    amount.addEventListener('input', onInput);
+    term.addEventListener('input', onInput);
     update();
   });
+
+  // ---------- Липкая кнопка на телефоне: скрыта, пока калькулятор на экране ----------
+  var sticky = document.querySelector('[data-mobile-cta]');
+  if (sticky && 'IntersectionObserver' in window) {
+    var visible = new Set();
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) visible.add(en.target); else visible.delete(en.target); });
+      sticky.classList.toggle('is-shown', visible.size === 0 && window.scrollY > 300);
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.calc, .cta, .footer').forEach(function (el) { io.observe(el); });
+    window.addEventListener('scroll', function () { sticky.classList.toggle('is-shown', visible.size === 0 && window.scrollY > 300); }, { passive: true });
+  }
 
   // ---------- Мобильное меню ----------
   var burger = document.querySelector('[data-burger]');
@@ -65,6 +93,7 @@
       dialog.querySelector('[data-apply-sum]').textContent = fmt(selection.amount) + ' на ' + selection.term + NB + plural(selection.term, days);
     }
     if (nav) { nav.classList.remove('is-open'); burger && burger.setAttribute('aria-expanded', 'false'); }
+    goal('apply_open', selection || {});
     if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
     setTimeout(function () { form.phone.focus(); }, 50);
   }
@@ -104,10 +133,11 @@
       var payload = {
         phone: '+' + digits, amount: +form.amount.value, term: +form.term.value,
         consents: { docs: true, pd: true, bki: true, asp: true, ads: form.ads.checked },
-        consentedAt: new Date().toISOString(), page: location.pathname,
+        consentedAt: new Date().toISOString(), page: location.pathname, utm: readUtm(), referrer: document.referrer,
       };
       var endpoint = body.getAttribute('data-endpoint');
       var show = function (html) { done.innerHTML = html; done.hidden = false; };
+      goal('apply_submit', { amount: payload.amount, term: payload.term });
 
       if (!endpoint) {
         show('<strong>Заявка сформирована.</strong> Это демонстрационный режим: подключите обработчик заявок (formEndpoint в site.config.js), чтобы передавать данные в личный кабинет.');

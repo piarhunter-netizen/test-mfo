@@ -10,10 +10,8 @@ const nav = [
   { name: 'Условия', path: '/usloviya/' },
   { name: 'Как получить', path: '/kak-poluchit/' },
   { name: 'Как погасить', path: '/kak-pogasit/' },
+  { name: 'Вопросы', path: '/voprosy-i-otvety/' },
   { name: 'О компании', path: '/o-kompanii/' },
-  { name: 'Документы', path: '/dokumenty/' },
-  { name: 'Статьи', path: '/blog/' },
-  { name: 'Контакты', path: '/kontakty/' },
 ];
 
 const footerCols = [
@@ -159,7 +157,7 @@ const header = (page) => `
       <div class="nav__extra">
         <a class="nav__phone" href="tel:${K.phoneHref}">${icon('phone')}${K.phone}</a>
         ${cfg.lkUrl ? `<a class="btn btn--ghost" href="${cfg.lkUrl}" rel="nofollow">Личный кабинет</a>` : ''}
-        <button class="btn btn--primary" type="button" data-open-apply>Получить займ</button>
+        <button class="btn btn--primary" type="button" data-open-apply>Получить деньги</button>
       </div>
     </nav>
   </div>
@@ -212,16 +210,16 @@ const applyModal = () => `
       <span class="field__err" data-err="phone">Введите номер полностью</span>
     </label>
     <fieldset class="consents">
-      <legend class="sr-only">Согласия</legend>
-      <label class="check"><input type="checkbox" name="docs" required><span>Я ознакомлен(а) с <a href="/dokumenty/" target="_blank">Общими условиями, Правилами предоставления займов и Информацией об условиях</a></span></label>
-      <label class="check"><input type="checkbox" name="pd" required><span>Даю <a href="/soglasie-na-obrabotku-pd/" target="_blank">согласие на обработку персональных данных</a> и ознакомлен(а) с <a href="/politika-konfidencialnosti/" target="_blank">Политикой</a></span></label>
-      <label class="check"><input type="checkbox" name="bki" required><span>Даю согласие на получение моей кредитной истории из бюро кредитных историй</span></label>
-      <label class="check"><input type="checkbox" name="asp" required><span>Принимаю <a href="/dokumenty/#asp" target="_blank">соглашение об использовании простой электронной подписи</a></span></label>
-      <label class="check check--optional"><input type="checkbox" name="ads"><span>Согласен(на) получать информационные и рекламные сообщения (необязательно)</span></label>
+      <legend class="consents__t">Чтобы продолжить, подтвердите:</legend>
+      <label class="check"><input type="checkbox" name="docs" required><span>ознакомление с <a href="/dokumenty/" target="_blank">условиями и правилами</a> выдачи займов</span></label>
+      <label class="check"><input type="checkbox" name="pd" required><span><a href="/soglasie-na-obrabotku-pd/" target="_blank">согласие на обработку персональных данных</a></span></label>
+      <label class="check"><input type="checkbox" name="bki" required><span>согласие на запрос кредитной истории в БКИ</span></label>
+      <label class="check"><input type="checkbox" name="asp" required><span><a href="/dokumenty/#asp" target="_blank">соглашение о простой электронной подписи</a></span></label>
+      <label class="check check--optional"><input type="checkbox" name="ads"><span>хочу получать новости и предложения — необязательно</span></label>
     </fieldset>
     <p class="field__err" data-err="consents">Чтобы продолжить, отметьте обязательные согласия</p>
     <button class="btn btn--primary btn--lg btn--block" type="submit">Продолжить</button>
-    <p class="modal__fine">Отправка заявки не означает заключения договора. Договор заключается только после того, как вы ознакомитесь с индивидуальными условиями и подпишете их.</p>
+    <p class="modal__fine">Заявка ни к чему не обязывает: договор заключается, только когда вы подпишете индивидуальные условия.</p>
     <div class="modal__done" data-apply-done hidden></div>
   </form>
 </dialog>`;
@@ -254,6 +252,7 @@ ${pageHeader(page)}
 ${page.body}
 </main>
 ${footer()}
+<div class="mobile-cta" data-mobile-cta><button class="btn btn--primary btn--lg btn--block" type="button" data-open-apply>Получить деньги</button></div>
 ${applyModal()}
 ${cookieBanner()}
 <script src="/assets/app.js?v=${assets.js}" defer></script>

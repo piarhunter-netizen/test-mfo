@@ -1,5 +1,5 @@
 // Переиспользуемые блоки страниц
-const { cfg, NBSP, esc, money, pct, pskText, yearRate, calc } = require('./lib');
+const { cfg, NBSP, esc, num, money, pct, pskText, yearRate, calc } = require('./lib');
 
 const paths = {
   shield: '<path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/>',
@@ -61,15 +61,37 @@ const calculator = ({ id = 'calc', title = 'Рассчитайте займ', he
       aria-valuetext="${L.defaultTerm} дней">
     <div class="calc__limits"><span>${L.minTerm}${NBSP}дней</span><span>${L.maxTerm}${NBSP}дней</span></div>
   </div>
-  <dl class="calc__summary">
-    <div><dt>Проценты за срок</dt><dd data-out="interest">${money(ex.interest)}</dd></div>
-    <div><dt>Вернуть</dt><dd data-out="total" class="calc__total">${money(ex.total)}</dd></div>
-    <div><dt>Дата возврата</dt><dd data-out="date">через ${L.defaultTerm}${NBSP}дн.</dd></div>
-  </dl>
-  <button class="btn btn--primary btn--lg btn--block" type="button" data-open-apply>Оформить заявку</button>
-  <p class="calc__note">Ставка ${pct(L.dailyRate)} в день, ПСК ${pskText()}. Расчёт предварительный, при условии возврата в срок. Решение о выдаче принимается индивидуально после проверки анкеты.</p>
+  <div class="calc__result">
+    <div class="calc__result-row">
+      <span>Вернуть <span data-out="date">через ${L.defaultTerm}${NBSP}дн.</span></span>
+      <strong class="calc__total" data-out="total">${money(ex.total)}</strong>
+    </div>
+    <div class="calc__result-sub">из них проценты — <span data-out="interest">${money(ex.interest)}</span></div>
+  </div>
+  <button class="btn btn--primary btn--lg btn--block" type="button" data-open-apply>Получить деньги</button>
+  <p class="calc__note">Ставка ${pct(L.dailyRate)} в день, ПСК ${pskText()}. Расчёт предварительный, при возврате в срок. Решение принимается индивидуально.</p>
 </section>`;
 };
+
+// Четыре главные цифры — компактная замена большой таблицы на главной и посадочных
+const keyNumbers = () => `
+<ul class="keynums">
+  <li><span>Сумма</span><strong>${num(L.minAmount)}–${money(L.maxAmount)}</strong></li>
+  <li><span>Срок</span><strong>${L.minTerm}–${L.maxTerm} дней</strong></li>
+  <li><span>Ставка</span><strong>${pct(L.dailyRate)} в день</strong></li>
+  <li><span>ПСК</span><strong>${pskText()}</strong></li>
+</ul>
+<p class="keynums__more">Неустойка за просрочку — не более ${L.penaltyRate}${NBSP}% годовых. Переплата ограничена ${L.overpaymentCap}${NBSP}% от суммы займа. <a href="/usloviya/">Все условия и пример расчёта</a></p>`;
+
+const trustStrip = () => `
+<ul class="trust">
+  <li>${icon('scale')}<div><strong>В реестре Банка России</strong><span>№ ${cfg.company.cbrRegNumber}</span></div></li>
+  <li>${icon('percent')}<div><strong>Без скрытых платежей</strong><span>Всё входит в ПСК</span></div></li>
+  <li>${icon('calendar')}<div><strong>Досрочно без комиссий</strong><span>Проценты только за дни</span></div></li>
+  <li>${icon('lock')}<div><strong>Данные под защитой</strong><span>Хранятся в России</span></div></li>
+</ul>`;
+
+const ctaButton = (text = 'Получить деньги') => `<p class="center cta-inline"><button class="btn btn--primary btn--lg" type="button" data-open-apply>${text}</button></p>`;
 
 const faqBlock = (items, { title = 'Вопросы и ответы', id = 'faq', heading = 'h2' } = {}) => `
 <section class="section" id="${id}" aria-labelledby="${id}-title">
@@ -108,10 +130,10 @@ const steps = (list, title = 'Как получить займ') => `
 </section>`;
 
 const defaultSteps = [
-  { t: 'Выберите сумму и срок', d: `От ${money(L.minAmount)} до ${money(L.maxAmount)} на ${L.minTerm}–${L.maxTerm} дней. Калькулятор сразу покажет сумму к возврату.` },
-  { t: 'Заполните анкету', d: 'Паспортные данные, контакты и сведения о доходе. Обычно это занимает 5–10 минут.' },
-  { t: 'Подпишите договор кодом из СМС', d: 'Перед подписанием вы видите индивидуальные условия с ПСК в рамке на первой странице.' },
-  { t: 'Получите деньги', d: 'На банковскую карту или по номеру телефона через СБП — на счёт, открытый на ваше имя.' },
+  { t: 'Выберите сумму и срок', d: 'Калькулятор сразу покажет, сколько вернуть.' },
+  { t: 'Заполните анкету', d: 'Паспорт, телефон и доход — около 5 минут.' },
+  { t: 'Подпишите договор', d: 'Кодом из СМС. Условия и ПСК — до подписи.' },
+  { t: 'Получите деньги', d: 'На карту или по СБП на ваш счёт.' },
 ];
 
 const features = (list) => `
@@ -145,12 +167,10 @@ const conditionsTable = () => {
 
 const requirements = () => `
 <ul class="checklist">
-  <li>${icon('check')}Гражданство РФ и постоянная регистрация</li>
-  <li>${icon('check')}Возраст от ${L.minAge} до ${L.maxAge} лет</li>
-  <li>${icon('check')}Действующий паспорт РФ</li>
-  <li>${icon('check')}Мобильный телефон, оформленный на вас</li>
-  <li>${icon('check')}Банковская карта или счёт на ваше имя</li>
-  <li>${icon('check')}Отсутствие самозапрета на займы в кредитной истории</li>
+  <li>${icon('check')}Гражданин РФ от ${L.minAge} до ${L.maxAge} лет</li>
+  <li>${icon('check')}Паспорт РФ и постоянная регистрация</li>
+  <li>${icon('check')}Телефон и карта (счёт) на ваше имя</li>
+  <li>${icon('check')}Нет самозапрета на займы</li>
 </ul>`;
 
 const cta = (title = 'Нужны деньги до зарплаты?', text = 'Рассчитайте займ и узнайте решение онлайн. Мы покажем полную стоимость до подписания договора.') => `
@@ -165,7 +185,7 @@ const cta = (title = 'Нужны деньги до зарплаты?', text = '�
 const riskNote = () => `
 <aside class="note note--warn" role="note">
   ${icon('alert', 'note__ico')}
-  <div><strong>Оцените свои возможности.</strong> Займ — это обязательство. Берите сумму, которую точно сможете вернуть в срок: при просрочке начисляется неустойка, информация передаётся в бюро кредитных историй, а долг может быть взыскан в судебном порядке. Если сомневаетесь — <a href="/blog/kak-ponyat-mozhno-li-brat-zaym/">прочитайте памятку</a>.</div>
+  <div><strong>Берите столько, сколько точно вернёте в срок.</strong> При просрочке начисляется неустойка, а данные передаются в бюро кредитных историй. <a href="/blog/kak-ponyat-mozhno-li-brat-zaym/">Как оценить свои возможности</a></div>
 </aside>`;
 
 const articleCards = (articles) => `
@@ -179,5 +199,5 @@ const articleCards = (articles) => `
 
 module.exports = {
   icon, pskBox, calculator, faqBlock, faqSchema, steps, defaultSteps, features,
-  conditionsTable, requirements, cta, riskNote, articleCards,
+  conditionsTable, requirements, cta, riskNote, articleCards, keyNumbers, trustStrip, ctaButton,
 };
